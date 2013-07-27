@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Flyport online webserver</title>
+<style>
+div 
+{
+	float:left;
+}
+</style>
+<script type="text/javascript" src="scripts/jquery-1.8.1.min.js"></script>
+<script type="text/javascript">
+function refresh()
+{
+	$.ajax({
+		type: "GET",
+		url: "sensors.xml?"+Math.random(),
+		dataType: "xml",
+		success:function(xml){
+			$("#pir").html($('sensors',xml).find('pir').text());
+			$("#temp").html($('sensors',xml).find('temp').text());
+			$("#light").html($('sensors',xml).find('light').text());
+			setTimeout("refresh()", 1000);
+		}
+	});
+}
+$(document).ready(function(e) {
+    refresh();
+	
+	$("#btnReboot").click(function(e) {
+		$.ajax({
+			type:"GET",
+			url:"reboot.cgi?"+Math.random(),
+			dataType:"text",
+			success: function(xml) {
+				alert(xml);
+			}
+		});
+	});
+	
+	$("#btnReset").click(function(e) {
+		$.ajax({
+			type:"GET",
+			url:"reset.cgi?"+Math.random(),
+			dataType:"text",
+			success: function(xml) {
+				alert(xml);
+			}
+		});
+	});
+	
+	$("#btnSaveDevice").click(function(e) {
+		$.ajax({
+			type:"POST",
+			url:"device.cgi",
+			dataType:"text",
+			data:$("#device").serialize(),
+			success: function(xml) {
+				alert(xml);
+			}
+		});
+	});
+	
+	$("#btnSaveNetwork").click(function(e) {
+		$.ajax({
+			type:"POST",
+			url:"network.cgi",
+			dataType:"text",
+			data:$("#network").serialize(),
+			success: function(xml) {
+				alert(xml);
+			}
+		});
+	});
+	
+	//$("#btnSaveWireless").click(function(e) {
+		//$.ajax({
+			//type:"POST",
+			//url:"wireless.cgi",
+			//dataType:"text",
+			//data:$("#wireless").serialize(),
+			//success: function(xml) {
+			//	alert(xml);
+			//}
+		//});
+	//});
+	
+});
+
+
+
+</script>
+</head>
+
+<body>
+Device Status<hr />
+<div>PIR: &nbsp;</div><div id="pir"></div><br />
+<div>Temperature: &nbsp;</div> <div id="temp"></div><br />
+<div>Ambient Light: &nbsp;</div> <div id="light"></div><br />
+<input id="btnReboot" type="button" value="Reboot Device" />
+<input id="btnReset" type="button" value="Reset Defaults" />
+<br />
+<br />
+Device Parameters<hr />
+<form id="device" name="device" action="device.cgi" method="post" autocomplete="off">
+  <table width="397" border="0" cellspacing="5" cellpadding="0">
+    <tr>
+      <td width="160" align="right">Sampling Period:</td>
+      <td width="237"><input name="SPERIOD" type="text" id="SPERIOD" value="~SPERIOD~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Publish Period:</td>
+      <td><input name="PPERIOD" type="text" id="PPERIOD" value="~PPERIOD~" /></td>
+    </tr>
+    <tr>
+      <td align="right">API Key:</td>
+      <td><input name="APIKEY" type="text" id="APIKEY" value="~APIKEY~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Device Name:</td>
+      <td><input name="DEVICENAME" type="text" id="DEVICENAME" value="~DEVICENAME~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Device Location:</td>
+      <td><input name="LOCATION" type="text" id="LOCATION" value="~LOCATION~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Server IP:</td>
+      <td><input name="SERVERIP" type="text" id="SERVERIP" value="~SERVERIP~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Server Port:</td>
+      <td><input name="SERVERPORT" type="text" id="SERVERPORT" value="~SERVERPORT~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Server URL:</td>
+      <td><input name="SERVERURL" type="text" id="SERVERURL" value="~SERVERURL~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Enable SNTP:</td>
+      <td><input name="SNTP" type="checkbox" id="SNTP" value="1" /></td>
+    </tr>
+    <tr>
+      <td align="right">Enable Upload:</td>
+      <td><input name="ENABLEAPP" type="checkbox" id="ENABLEAPP" value="1" /></td>
+    </tr>
+    <tr>
+      <td align="right">&nbsp;</td>
+      <td>
+      <input type="button" name="btnSaveDevice" id="btnSaveDevice" value="Save" /></td>
+    </tr>
+  </table>
+</form><br />
+Network Parameters
+<hr />
+<form action="network.cgi" method="post" name="network" id="network" autocomplete="off">
+  <table width="397" border="0" cellspacing="5" cellpadding="0">
+    <tr>
+      <td align="right">DHCP:</td>
+      <td><input type="radio" name="DHCP" id="DHCP" value="1" />
+        Enabled
+        <input name="DHCP" type="radio" id="DHCP" value="0" checked="checked" />
+        Disabled</td>
+    </tr>
+    <tr>
+      <td align="right">IP Address:</td>
+      <td><input name="IP" type="text" id="IP" value="~IPADDR~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Subnet Mask:</td>
+      <td><input name="MASK" type="text" id="MASK" value="~SUBNET~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Gateway:</td>
+      <td><input name="GATEWAY" type="text" id="GATEWAY" value="~GATEWAY~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Primary DNS:</td>
+      <td><input name="DNS1" type="text" id="DNS1" value="~DNS1~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Secondary DNS:</td>
+      <td><input name="DNS2" type="text" id="DNS2" value="~DNS2~" /></td>
+    </tr>
+    <tr>
+      <td align="right">&nbsp;</td>
+      <td><input type="button" name="btnSaveNetwork" id="btnSaveNetwork" value="Save" /></td>
+    </tr>
+  </table>
+</form>
+<br />
+<!--Wireless Parameters
+<hr />
+<form action="wireless.cgi" method="post" name="wireless" id="wireless" autocomplete="off">
+  <table width="397" border="0" cellspacing="5" cellpadding="0">
+    <tr>
+      <td align="right">Network Type:</td>
+      <td><input name="NETTYPE" type="radio" id="NETTYPE" value="0" checked="checked" />
+AdHoc
+  <input name="NETTYPE" type="radio" id="NETTYPE" value="1" /> 
+  Infrastructure
+</td>
+    </tr>
+    <tr>
+      <td width="156" align="right">SSID:</td>
+      <td width="226"><input name="SSID" type="text" id="SSID" value="~SSID~" /></td>
+    </tr>
+    <tr>
+      <td align="right">Type:</td>
+      <td><select name="TYPE" id="TYPE">
+        <option value="OPEN" selected="selected">Open</option>
+        <option value="WEP40">WEP40</option>
+        <option value="WEP104">WEP104</option>
+        <option value="WPA">WPA</option>
+        <option value="WPA2">WPA2</option>
+      </select></td>
+    </tr>
+    <tr>
+      <td align="right">Key:</td>
+      <td><input type="text" name="KEY" id="KEY" /></td>
+    </tr>
+    <tr>
+      <td align="right">&nbsp;</td>
+      <td><input type="button" name="btnSaveWireless" id="btnSaveWireless" value="Save" /></td>
+    </tr>
+  </table>
+</form> -->
+</body>
+</html>
