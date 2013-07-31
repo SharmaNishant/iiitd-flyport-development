@@ -23,37 +23,23 @@ void FlyportTask()
 	vTaskDelay(20);
     UARTWrite(1,"Flyport registered on network!\r\n");
 	
-	ProfileInit();
+	ProfileInit();	// Loading Profile
 	
-	ClockInit();
+	ClockInit();	// initialising RTCC/clock
 	
 	struct tm mytime;
-	/*
-	//UARTWrite(1, "\r\nStarting UARTUpdate Thread\r\n");
-	xTaskHandle hUARTUpdate2;
-	//if(hUARTUpdate == NULL)
-	//{
-		//Creates the task dedicated to user code
-		xTaskCreate(UARTcomm,(signed char*) "GUIUpdate" , (configMINIMAL_STACK_SIZE * 2), NULL, tskIDLE_PRIORITY, &hUARTUpdate2);	
-	//}
-	vTaskDelay(10);
-	*/
-	AppTask();
 	
+	AppTask();	// start sampling/sending data
+	
+	// This part only excecutes is AppTask() is not running
 	UARTWrite(1, "\r\nEntering infinite loop...\r\n");
 	
     while(1)
     {
-		//while(UARTread == 1)		
-		//	vTaskDelay(500);
-		//UARTwrite++;		
 		if(RTCCAlarmStat()) {
 			RTCCGet(&mytime);
-			
-			//time_t current = mktime(&mytime);
 			UARTWrite(1, "\r\nFlyportTask ALARM\r\n");
 			UARTWrite(1, asctime(&mytime));
 		}
-		//UARTwrite--;
 	}
 }

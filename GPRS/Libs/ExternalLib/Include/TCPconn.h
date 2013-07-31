@@ -1,6 +1,6 @@
 #include "TCPlib.h"
 
-void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port);
+int TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port);
 
 int TCPSend(TCP_SOCKET *sockTcp, char *msg);
 

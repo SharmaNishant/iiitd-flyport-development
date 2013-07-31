@@ -4,6 +4,7 @@
 #include "RTCClib.h"
 #include "time.h"
 
+// Returns the No. of Day taking its Name
 int getDAY(char *day) {
 	if(strcmp(day, "Sun") == 0)
 		return 0;
@@ -21,6 +22,7 @@ int getDAY(char *day) {
 		return 6;
 }
 
+// Returns the No. of Month taking its Name
 int getMONTH(char *month) {
 	if(strcmp(month, "Jan") == 0)
 		return 0;
@@ -48,21 +50,24 @@ int getMONTH(char *month) {
 		return 11;
 }
 
+// Initialization of Clock
 void ClockInit() {
 	UARTWrite(1, "\r\nInitialising Clock\r\n");
 	TCP_SOCKET sockTCP;
 	sockTCP.number = INVALID_SOCKET;
 	
-	char Buff[1500];
-	//char *Buff;
+	// Buffer to store data recieved from TCP connection
+	char Buff[1100];
 
+	// Getting Date info from www.google.com
+	// Infinite loop until we recieve data from server successfully
+	// we cannot move forward without getting the date
 	int currentState=0;
 	int ret;
 	char toUART[10];
 	while(currentState < 4) {
 		switch(currentState) {
-			case 0:	TCPConnect(&sockTCP, "www.google.com", "80");	
-					ret = 0;
+			case 0:	ret = TCPConnect(&sockTCP, "www.google.com", "80");	
 					break;
 			
 			case 1:	ret = TCPSend(&sockTCP, "GET / HTTP/1.0\r\n\r\n");
@@ -73,7 +78,6 @@ void ClockInit() {
 		
 			case 3:	TCPClose(&sockTCP);
 					break;
-			//case 2:	ret = lTCPRecieve(&sockTCP, Buff);
 		}
 		UARTWrite(1, "Socket Status: ");
 		sprintf(toUART, "%d\r\n", sockTCP.status);
@@ -85,11 +89,11 @@ void ClockInit() {
 		else 	currentState=0;
 	}	
 	
-	//char Buff[] = "adaDate: Sat, 20 Jul 2013 15:19:17 GMT\r\n";
+	//char Buff[] = "adaDate: Sat, 20 Jul 2013 15:19:17 GMT\r\n";			// example buff for purpose of debugging
+	
+	// Retrieving Date from Buff
 	char *ptr = strstr(Buff, "Date:");
 	
-	//UARTWrite(1, Buff);
-
 	char wday[4], month[4];
 	int mday, year, hr, min, sec;
 		
@@ -120,20 +124,12 @@ void ClockInit() {
 		}
 		date[i] = '\0';
 		
-		//vTaskDelay(10);
 		UARTWrite(1, date);
-		//vTaskDelay(100);						
 		
-		int items = sscanf(date, "Date  %3s %2i %3s %4i %2i %2i %2i GMT", wday, &mday, month, &year, &hr, &min, &sec);
-		/*
-		char toprint[100];
-		sprintf(toprint, "\r\nitems=%d,-%s-%i-%s-%i-%i-%i-%i\r\n", items, wday, mday, month, year, hr, min, sec);
-		
-		vTaskDelay(10);
-		UARTWrite(1, toprint);
-		vTaskDelay(100);*/
+		int items = sscanf(date, "Date  %3s %2i %3s %4i %2i %2i %2i GMT", wday, &mday, month, &year, &hr, &min, &sec);		
 	}
 	
+	// Setting the RTCC
 	struct tm mytime;
  
 	//initialization of mytime
@@ -147,8 +143,11 @@ void ClockInit() {
 
 	RTCCSet(&mytime);
 	
+	
+	// Configuring the Alarm
 	RTCCAlarmConf(&mytime, REPEAT_INFINITE, EVERY_SEC, NO_ALRM_EVENT);
 	
+	// Starting the Alarm
 	RTCCAlarmSet(1);
 	
 	UARTWrite(1, "Clock Set\r\nDate: ");

@@ -9,12 +9,15 @@
 #include "TCPconn.h"
 #include "GSM_Events.h"
 
+// Size of JSON Object
 #define size 23
 
 //PIR Sensor value
 int PIR;
 //PSEUDO Sensor
 int PSEUDO;
+
+int sent[sensor_END];
 
 char sensdata[sensor_END][600];
 
@@ -45,10 +48,8 @@ char unit[20] = "";
 // data readings to be sent in json_object
 char version[] = "1.0.0";
 
-int len;
-
 /*
-// defines the JSON accepted by SensorAct
+// defines the JSON accepted by XIVELY
 char *json_object[] = {
     "{\"id\" : \"", sensorname,
     "\",\"datapoints\":[", sreadings,
@@ -158,8 +159,8 @@ int makeJson(char *buff, enum sensor_index index)
 			{
 				strcat(buff, json_object[i]);
 			}	
-			// clear the readings in pirreadings so that new 10 readings can be taken
-			//sensdata[sensor_pir][0] = '\0';
+			// set sent for PIR to length of sensdata that has been copied to buff
+			sent[sensor_pir] = strlen(sensdata[sensor_pir]);
 			break;
 			
 		case sensor_pseudo:
@@ -173,13 +174,13 @@ int makeJson(char *buff, enum sensor_index index)
 			{
 				strcat(buff, json_object[i]);
 			}	
-			// clear the readings in pirreadings so that new 10 readings can be taken
-			//sensdata[sensor_pseudo][0] = '\0';
+			// set sent for PSEUDO to length of sensdata that has been copied to buff
+			sent[sensor_pseudo] = strlen(sensdata[sensor_pseudo]);
 			break;
 	}
 	sreadings[0] = '\0';	
 	// calculate the length of the json_object required for making the header
-	len = strlen(buff);
+	int len = strlen(buff);
 	return len;
 }
 
@@ -194,9 +195,8 @@ char post_header[] =
     "\r\n"
 	"%s";
 
-char pirstr[10];
-char pseudostr[10];
-//char timestamp[50];
+char pirstr[4];
+char pseudostr[4];
 
 void UpdateTimestamp() {
 	struct tm ts;
@@ -212,14 +212,19 @@ void UpdateTimestamp() {
 	UARTWrite(1, "\r\n");
 }
 	
+/* Function to Sample the readings from the sensors,
+	Have to make sure that this function does not take much time, to excecute,
+	so use no blocking function in this, as this function is called from Main thread,
+	and may interfere with maintainence of GSM State Machine */
 void SampleTask() {
+	// waiting until Flyport has Initialized successfully, and is ready to sample data
 	if(AppTaskStart == 0) {
 		//UARTWrite(1, "\r\nwaiting for UPLOAD.c\r\n");
 		return;
 	}
 	
+	// when alarm raises
 	if(RTCCAlarmStat()) {
-		
 			if(alarmcount == 0)
 			{
 				UpdateTimestamp();
@@ -229,9 +234,14 @@ void SampleTask() {
 				alarmread = 1;
 			
 			if(alarmread == 1) {
-				//UARTWrite(1, "\r\nCollecting Data\r\n");
+				struct tm mytime;
+				RTCCGet(&mytime);
+				UARTWrite(1, "Sampling Data - ");
+				UARTWrite(1, asctime(&mytime));
+
 				
-				/*struct tm now;
+				/*	FOR UPLOADING DATA TO XIVELY.COM
+				struct tm now;
 				RTCCGet(&now);
 				strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M.%SZ", &now);
 				
@@ -243,13 +253,6 @@ void SampleTask() {
 				//UARTWrite(1, pirstr);
 				taskEXIT_CRITICAL();*/
 				
-				taskENTER_CRITICAL();
-				if(alarmcount%2 == 0)	PIR = 1;
-				else
-				PIR = PIRRead();			// get PIR data
-				sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
-				taskEXIT_CRITICAL();
-				
 				/*taskENTER_CRITICAL();
 				if(alarmcount%2 == 0)	PSEUDO = 1;
 				else
@@ -257,6 +260,14 @@ void SampleTask() {
 				sprintf(pseudostr,"{\"at\":\"%s\",\"value\":\"%d\"},",timestamp,PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
 				//UARTWrite(1, pseudostr);
 				taskEXIT_CRITICAL();*/
+				
+				/// FOR UPLOADING DATA TO SENSORACT
+				taskENTER_CRITICAL();
+				if(alarmcount%2 == 0)	PIR = 1;
+				else
+				PIR = PIRRead();			// get PIR data
+				sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
+				taskEXIT_CRITICAL();							
 				
 				taskENTER_CRITICAL();
 				if(alarmcount%2 == 0)	PSEUDO = 1;
@@ -275,7 +286,9 @@ void SampleTask() {
 				
 				alarmread = 0;
 			}
-			if(strlen(sensdata[sensor_pir])>=540 ||  strlen(sensdata[sensor_pseudo])>=540) {
+			
+			//If the buffer of data gets filled, clear the buffer
+			if(strlen(sensdata[sensor_pir])>=590 ||  strlen(sensdata[sensor_pseudo])>=590) {
 				UARTWrite(1, "\r\nClearing Data\r\n");
 				sensdata[sensor_pir][0] = '\0';
 				sensdata[sensor_pseudo][0] = '\0';
@@ -285,26 +298,13 @@ void SampleTask() {
 }
 
 
+/* Function to start Sampling, and connect to server to send data also,
+	continously poll, to check if there is something recieved by SMS, or on UART,
+*/
 void AppTask()
-{	
-	
-	
+{			
 	TCP_SOCKET sendSOCK;
 	sendSOCK.number = INVALID_SOCKET;
-	
-	/*
-	UARTWrite(1,"Creating Task\r\n");
-	
-	if(hPostTask == NULL)
-	{
-		//Creates the task dedicated to user code
-		xTaskCreate(PostTask,(signed char*) "Post" , (configMINIMAL_STACK_SIZE * 4), NULL, tskIDLE_PRIORITY + 1, &hPostTask);	
-	}
-	vTaskDelay(5);
-	UARTWrite(1,"Task initiated\r\n");
-	*/
-	
-	//alarmflag = 0;
 	
 	AppTaskStart = 1;
 	
@@ -314,68 +314,17 @@ void AppTask()
 	
 	while(1)
 	{       
-		//UARTWrite(1, "\r\nupload.c\r\n");
-		
+		// If something is recieved on UART buffer calls UARTcomm
 		if(UARTBufferSize(1) > 0) {
-			UARTcomm();
-			
+			UARTcomm();			
 		}
 		
+		// If something is recieved on SMS, calls SMSUpdate
 		if(incomingSMS == TRUE) {
 			incomingSMS = FALSE;
 			SMSUpdate();
 		}
 		
-		//struct tm mytime;
-		
-		//RTCCGet(&mytime);
-			
-		//UARTWrite(1, "\r\nFlyportTask ALARM\r\n");
-		//UARTWrite(1, asctime(&mytime));
-		
-	/*	while(!RTCCAlarmStat())
-			vTaskDelay(1);
-		
-		if(alarmcount == 0)
-		{
-			//UpdateTimestamp();
-		}
-					
-		if(alarmcount % profile.SamplingPeriod == 0) //Assumption: Sampling period is integer
-			alarmread = 1;
-			
-		if(alarmread == 1)
-		{	
-		/*	alarmread = 0;
-			
-			struct tm now;
-			RTCCGet(&now);
-			strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M.%SZ", &now);
-			
-			taskENTER_CRITICAL();
-			PIR = PIRRead();			// get PIR data
-			sprintf(pirstr,"{\"at\":\"%s\",\"value\":\"%d\"},",timestamp,PIR);	//Copy PIR data in to PIR data string
-			//UARTWrite(1, pirstr);
-			taskEXIT_CRITICAL();
-			
-			taskENTER_CRITICAL();
-			PSEUDO = pseudoRead();			// get PSEUDO data
-			sprintf(pseudostr,"{\"at\":\"%s\",\"value\":\"%d\"},",timestamp,PSEUDO);	//Copy PSEUDO data in to PIR data string
-			//UARTWrite(1, pseudostr);
-			taskEXIT_CRITICAL();
-			
-			taskENTER_CRITICAL();
-			strcat(sensdata[sensor_pir],pirstr);
-			taskEXIT_CRITICAL();
-			
-			taskENTER_CRITICAL();
-			strcat(sensdata[sensor_pseudo],pseudostr);
-			taskEXIT_CRITICAL();
-			
-			while(alarmread != 0);
-		}*/
-		
-		//alarmcount++;
 		if(alarmcount % profile.PublishPeriod == 0)
 		{
 			alarmupload = 1;
@@ -394,23 +343,44 @@ void AppTask()
 				// send the data length to makeheader which makes and sends the header
 				length = sprintf(RequestBuffer, post_header, profile.ServerURL, profile.ServerIP, length, bufHTTPheader);
 				
-				//UARTWrite(1, RequestBuffer);
+				UARTWrite(1, RequestBuffer);
 				//vTaskDelay(50);
-				
-				//int ret = -1;
-				//while(ret != 0)
+								
+				// sending data
 				int ret = TCPSend(&sendSOCK, RequestBuffer);
 				
+				// if sending failed, connect to server again and continue
 				if(ret == -1) {
-					TCPClose(&sendSOCK);
+					TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
+					continue;
+				}
+				
+				// recieving the response
+				ret = TCPRecieve(&sendSOCK, bufHTTPheader);
+				
+				// is response recieved, clear the sent data from readings buffer
+				if(ret == 0) {
+					UARTWrite(1, "\r\nData Successfully Sent");
+					
+					// stop sampling more data, to copy the rest of data to start
+					AppTaskStart = 0;
+					int j=0;
+					int k=0;
+					UARTWrite(1, "\r\nClearing Sent Data");
+					for(j=sent[i] ; j<strlen(sensdata[i]) ; j++) {
+						sensdata[i][k++] = sensdata[i][j];
+					}
+					sensdata[i][k] = '\0';
+					UARTWrite(1, "\r\nData Cleared");
+					
+					// sent data cleared, start sampling
+					AppTaskStart = 1;
+				}
+				// if response is not recieved, connect to server again
+				else {
 					TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
 				}
-				else {
-					sensdata[sensor_pir][0] = '\0';
-					sensdata[sensor_pseudo][0] = '\0';
-				}
-			}
-					
+			}				
 		}
    }
 }

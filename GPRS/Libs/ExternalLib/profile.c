@@ -6,9 +6,7 @@
 
 PROFILE profile;
 
-//int UARTread;
-//int UARTwrite;
-
+// Saving Profile to Memory
 void ProfileSave()
 {
 	_erase_flash(0x2A400);
@@ -45,6 +43,7 @@ void ProfileSave()
 	}
 }
 
+// Loading Profile from Memory
 void ProfileLoad()
 {
 	int in1 = 0;
@@ -68,6 +67,7 @@ void ProfileLoad()
 	}
 }
 
+// Loading/Saving Default Profile
 void ProfileDefault()
 {
 	UARTWrite(1, "Creating Default profile \r\n");
@@ -90,6 +90,7 @@ void ProfileDefault()
 	ProfileSave();
 }
 
+// To check if a profile exists in memory
 BOOL ProfileExist()
 {
 	int rdoffset;
@@ -105,22 +106,29 @@ BOOL ProfileExist()
 		return 0;
 }
 
+/* Initailization - 
+		Loads Profile from Memory if available, or
+		Loads Default Profile
+*/
 void ProfileInit()
 {
-	//UARTread = 0;
-	//UARTwrite = 0;
 	if(ProfileExist())
 		ProfileLoad();
 	else
 		ProfileDefault();
 }
 
-
+//	Function to Delete profile from memory
 void ProfileDelete()
 {
 	_erase_flash(0x2A400);
 }
 
+/* Sends current profile to UART, to load values on GUI
+	it first sends @values, to start sending profile parameters
+	then sends parameters in particular order, one parameter per line
+	and sends @end-values, to notify end of transmission
+*/
 void SendProfile() {
 	taskENTER_CRITICAL();
 	UARTWrite(1,"@values\r\n");
@@ -154,6 +162,7 @@ void SendProfile() {
 	taskEXIT_CRITICAL();
 }
 
+// Sets profile parameter 'n' to value
 void setProfile(int n, char *value) {
 	
 	switch(n) {
@@ -187,6 +196,12 @@ void setProfile(int n, char *value) {
 	}
 }
 
+/* Reads profile parameters from UART, to update and save profile
+	it first sends @sendOK, to notify, that it is ready to start recieving
+	parameters in particular order, one parameter per line, sending '#OK#', to notify
+	it is ready to recieve the next parameter, after all parameters are set,
+	it sends @recvOK, to notify end of transmission
+*/
 void ReadProfile() {
 	taskENTER_CRITICAL();
 	UARTWrite(1, "@sendOK\r\n");
@@ -201,8 +216,6 @@ void ReadProfile() {
 		int len = UARTBufferSize(1);
 		UARTRead(1, str, len);
 		str[len] = '\0';
-		//UARTWrite(1, str);
-		//UARTWrite(1, "\r\n");
 		if(strcmp(str, "@values\r\n") == 0);
 		else if(strcmp(str, "@end-values\r\n") == 0) {
 			break;			
@@ -218,44 +231,35 @@ void ReadProfile() {
 	taskEXIT_CRITICAL();
 }
 
+/* Reads UART buffer, and then call
+	SendProfile if "@fetch" is recieved
+	ReadProfile if "@update" is recieved
+*/
 void UARTcomm() {
 	UARTWrite(1, "\r\nListening to UART...\r\n");
 		
-	//while(1) {
-		char STR[1000];
-		/*
-		while(UARTBufferSize(1) == 0) {
-			//UARTWrite(1,"Waiting for UART\r\n");
-			vTaskDelay(1000);
-		}*/
-		//UARTread = 1;
-		UARTWrite(1,"got something\r\n");
-		vTaskDelay(50);
-		//while(1) {
-			//if(UARTwrite == 0) {
-				//UARTWrite(1,"got something\r\n");
-				int len = UARTBufferSize(1);
-				UARTRead(1, STR, len);
-				STR[len] = '\0';
-				//UARTWrite(1,STR);
-				//UARTWrite(1,"\r\n");				
-				if(strcmp(STR, "@fetch\r\n") == 0) {					
-					SendProfile();
-					vTaskDelay(100);
-				}
-				else if(strcmp(STR, "@update\r\n") == 0) {
-					ReadProfile();
-					UARTWrite(1, "\r\nProfile Updated\r\n");
-				}
-				//break;
-			//}
-			//else
-			//	vTaskDelay(1);
-		//}
-		//UARTread = 0;
-	//}
+	char STR[1000];
+	
+	//UARTWrite(1,"got something\r\n");
+	vTaskDelay(50);
+		
+	int len = UARTBufferSize(1);
+	UARTRead(1, STR, len);
+	STR[len] = '\0';
+	//UARTWrite(1,STR);
+	//UARTWrite(1,"\r\n");				
+	if(strcmp(STR, "@fetch\r\n") == 0) {					
+		SendProfile();
+		vTaskDelay(100);
+	}
+	else if(strcmp(STR, "@update\r\n") == 0) {
+		ReadProfile();
+		UARTWrite(1, "\r\nProfile Updated\r\n");
+	}				
 }
 
+
+// Takes the SMS msg, with pointer to a parameter in msg, and parameter no.
 int SetParam(char *msg, char *ptr, int offset, int param) {
 	if(ptr == NULL)
 		return -1;
@@ -263,23 +267,12 @@ int SetParam(char *msg, char *ptr, int offset, int param) {
 		int loc = ptr - msg;
 		loc+=offset;
 		
-		char tmp[49];
+		char tmp[65];
 		
 		int i=0;
 		
-		while(msg[loc] != '#') {
-			/*char str[10];
-			sprintf(str, "%c,%d\r\n", Buff[loc], Buff[loc]);
-			UARTWrite(1, str);
-			if(msg[loc] == ':') {
-				tmp[i++] = ' ';
-				loc++;
-			}
-			else if(tmp[loc] == ',') {
-				loc++;
-			}
-			else*/
-				tmp[i++] = msg[loc++];
+		while(msg[loc] != '#') {			
+			tmp[i++] = msg[loc++];
 		}
 		tmp[i] = '\0';
 		
@@ -288,9 +281,11 @@ int SetParam(char *msg, char *ptr, int offset, int param) {
 	}
 }
 
+// Function to parse SMS and take appropriate step and reply SMS
 void SMSParse(char *to, char *msg) {
 	char str[161];
 	
+	// send parameters via SMS
 	if(strstr(msg, "PARAM#") != NULL) {			
 		sprintf(str, "Sampling Period: %d\r\nPublish Period: %d\r\nAPI Key: %s\r\nDevice Name: %s\r\nLocation: %s\r\n", profile.SamplingPeriod, profile.PublishPeriod, profile.ApiKey, profile.DeviceName, profile.Location);
 		SendSMS(to, str);
@@ -304,21 +299,20 @@ void SMSParse(char *to, char *msg) {
 		return "Will Send Status in Near Future";
 	}
 	
-	else if(strstr(msg, "SET#") != NULL) {
-		char tmp[161];
-		
+	// sets profile parameters and reply via SMS and save profile
+	else if(strstr(msg, "SET#") != NULL) {		
 		if(strstr(msg, "SPERIOD ")) {
 			char *ptr = strstr(msg, "SPERIOD ");
 			
 			int ret = SetParam(msg, ptr, strlen("SPERIOD "), 0);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Sampling Period SET: %d\r\n", profile.SamplingPeriod);
+				sprintf(str, "Sampling Period SET: %d\r\n", profile.SamplingPeriod);
 			}
 			else {
-				sprintf(tmp, "Sampling Period NOT SET: %d\r\n", profile.SamplingPeriod);
+				sprintf(str, "Sampling Period NOT SET: %d\r\n", profile.SamplingPeriod);
 			}			
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "PPERIOD ")) {
@@ -327,12 +321,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("PERIOD "), 1);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Publish Period SET: %d\r\n", profile.PublishPeriod);
+				sprintf(str, "Publish Period SET: %d\r\n", profile.PublishPeriod);
 			}
 			else {
-				sprintf(tmp, "Publish Period NOT SET: %d\r\n", profile.PublishPeriod);
+				sprintf(str, "Publish Period NOT SET: %d\r\n", profile.PublishPeriod);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "API ")) {
@@ -341,12 +335,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("API "), 2);
 			
 			if(ret == 0) {
-				sprintf(tmp, "API Key SET: %s\r\n", profile.ApiKey);
+				sprintf(str, "API Key SET: %s\r\n", profile.ApiKey);
 			}
 			else {
-				sprintf(tmp, "API Key NOT SET: %s\r\n", profile.ApiKey);
+				sprintf(str, "API Key NOT SET: %s\r\n", profile.ApiKey);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "DEVICENAME ")) {
@@ -355,12 +349,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("DEVICENAME "), 3);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Device Name SET: %s\r\n", profile.DeviceName);
+				sprintf(str, "Device Name SET: %s\r\n", profile.DeviceName);
 			}
 			else {
-				sprintf(tmp, "Device Name NOT SET: %s\r\n", profile.DeviceName);
+				sprintf(str, "Device Name NOT SET: %s\r\n", profile.DeviceName);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "LOCATION ")) {
@@ -369,12 +363,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("LOCATION "), 4);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Location SET: %s\r\n", profile.Location);
+				sprintf(str, "Location SET: %s\r\n", profile.Location);
 			}
 			else {
-				sprintf(tmp, "Location NOT SET: %s\r\n", profile.Location);
+				sprintf(str, "Location NOT SET: %s\r\n", profile.Location);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "SERVERIP ")) {
@@ -383,12 +377,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("SERVERIP "), 5);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Server IP SET: %s\r\n", profile.ServerIP);
+				sprintf(str, "Server IP SET: %s\r\n", profile.ServerIP);
 			}
 			else {
-				sprintf(tmp, "Server IP NOT SET: %s\r\n", profile.ServerIP);
+				sprintf(str, "Server IP NOT SET: %s\r\n", profile.ServerIP);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "SERVERPORT ")) {
@@ -397,13 +391,13 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("SERVERPORT "), 6);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Server Port SET: %s\r\n", profile.ServerPort);
+				sprintf(str, "Server Port SET: %s\r\n", profile.ServerPort);
 			}
 			else {
-				sprintf(tmp, "Server Port NOT SET: %s\r\n", profile.ServerPort);
+				sprintf(str, "Server Port NOT SET: %s\r\n", profile.ServerPort);
 			}
 			
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "SERVERURL ")) {
@@ -412,13 +406,13 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("SERVERURL "), 7);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Server URL SET: %s\r\n", profile.ServerURL);
+				sprintf(str, "Server URL SET: %s\r\n", profile.ServerURL);
 			}
 			else {
-				sprintf(tmp, "Server URL NOT SET: %s\r\n", profile.ServerURL);
+				sprintf(str, "Server URL NOT SET: %s\r\n", profile.ServerURL);
 			}
 			
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "APN ")) {
@@ -427,12 +421,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("APN "), 8);
 			
 			if(ret == 0) {
-				sprintf(tmp, "APN SET: %s\r\n", profile.APN);
+				sprintf(str, "APN SET: %s\r\n", profile.APN);
 			}
 			else {
-				sprintf(tmp, "APN NOT SET: %s\r\n", profile.APN);
+				sprintf(str, "APN NOT SET: %s\r\n", profile.APN);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "LOGIN ")) {
@@ -441,12 +435,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("LOGIN "), 9);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Login SET: %s\r\n", profile.Login);
+				sprintf(str, "Login SET: %s\r\n", profile.Login);
 			}
 			else {
-				sprintf(tmp, "Login NOT SET: %s\r\n", profile.Login);
+				sprintf(str, "Login NOT SET: %s\r\n", profile.Login);
 			}
-			SendSMS(to, tmp);			
+			SendSMS(to, str);			
 		}
 		
 		if(strstr(msg, "PASSWORD ")) {
@@ -455,12 +449,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("PASSWORD "), 10);
 			
 			if(ret == 0) {
-				sprintf(tmp, "Password SET: %s\r\n", profile.Password);
+				sprintf(str, "Password SET: %s\r\n", profile.Password);
 			}
 			else {
-				sprintf(tmp, "Password NOT SET: %s\r\n", profile.Password);
+				sprintf(str, "Password NOT SET: %s\r\n", profile.Password);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "IPADDRESS ")) {
@@ -469,12 +463,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("IPADDRESS "), 11);
 			
 			if(ret == 0) {
-				sprintf(tmp, "IP Address SET: %s\r\n", profile.IPAddress);
+				sprintf(str, "IP Address SET: %s\r\n", profile.IPAddress);
 			}
 			else {
-				sprintf(tmp, "IP Address NOT SET: %s\r\n", profile.IPAddress);
+				sprintf(str, "IP Address NOT SET: %s\r\n", profile.IPAddress);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "DNS1 ")) {
@@ -483,12 +477,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("DNS1 "), 12);
 			
 			if(ret == 0) {
-				sprintf(tmp, "DNS1 SET: %s\r\n", profile.DNS1);
+				sprintf(str, "DNS1 SET: %s\r\n", profile.DNS1);
 			}
 			else {
-				sprintf(tmp, "DNS1 NOT SET: %s\r\n", profile.DNS1);
+				sprintf(str, "DNS1 NOT SET: %s\r\n", profile.DNS1);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 		
 		if(strstr(msg, "DNS2 ")) {
@@ -497,12 +491,12 @@ void SMSParse(char *to, char *msg) {
 			int ret = SetParam(msg, ptr, strlen("DNS2 "), 13);
 			
 			if(ret == 0) {
-				sprintf(tmp, "DNS2 SET: %s\r\n", profile.DNS2);
+				sprintf(str, "DNS2 SET: %s\r\n", profile.DNS2);
 			}
 			else {
-				sprintf(tmp, "DNS2 NOT SET: %s\r\n", profile.DNS2);
+				sprintf(str, "DNS2 NOT SET: %s\r\n", profile.DNS2);
 			}
-			SendSMS(to, tmp);
+			SendSMS(to, str);
 		}
 	
 		taskENTER_CRITICAL();
@@ -511,6 +505,7 @@ void SMSParse(char *to, char *msg) {
 	}
 }
 
+// If SMS is recieved, reads the SMS, takes sends msg to SMSParse, and then delete SMS
 void SMSUpdate() {
 	
 	SMSRead(incomingIndexSMS, incomingMemSMS);

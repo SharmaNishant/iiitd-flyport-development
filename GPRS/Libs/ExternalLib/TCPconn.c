@@ -9,27 +9,35 @@ int currentState;
 
 char toUART[100];
 
-void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
-		
-	//sockTcp.number = INVALID_SOCKET;
-	//sockTcp->number = INVALID_SOCKET;
-	
+/*
+	Each function below returns
+		-1 for FAILURE
+		0 for SUCCESS
+*/
+
+/* Makes a TCP connection in Standard Mode
+	If connection fails, MAX RETRIES = 2
+*/
+int TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
+
 	currentState = 0;
 	int Count = 0;
 	while(currentState != 3) {
 		
 		if(Count == 3)
-			break;
+			return -1;
 			
 		switch(currentState) {
 			case 0:	Count++;
+					// Setup APN parameters
 					UARTWrite(1, "Setup APN params\r\n");
 					APNConfig(profile.APN, profile.Login, profile.Password, profile.IPAddress, profile.DNS1, profile.DNS2);
 					
 					vTaskDelay(20);
 					
+					// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
 					if(AppTaskStart == 0) {
-						while(LastExecStat() == OP_EXECUTION) {
+						while(LastExecStat() == OP_EXECUTION) {		// Checking if the APNConfig command is excecuted
 							vTaskDelay(20);
 							IOPut(p19, toggle);
 						}
@@ -42,7 +50,7 @@ void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
 						IOPut(p19, off);
 					}
 					// Choose next step:
-					if(LastExecStat() != OP_SUCCESS)
+					if(LastExecStat() != OP_SUCCESS)		// If the APNConfig command is excecuted successfully
 						currentState = 0; // Repeat from case 1
 					else
 						currentState++; // execute next step
@@ -56,8 +64,9 @@ void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
 					//TCPClientOpen(&sockTcp, IP, Port);
 					TCPClientOpen(sockTcp, IP, Port);
 					
+					// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
 					if(AppTaskStart == 0) {
-						while(LastExecStat() == OP_EXECUTION) {
+						while(LastExecStat() == OP_EXECUTION) {		// Checking if the TCPClientOpen command is excecuted
 							vTaskDelay(20);
 							IOPut(p19, toggle);
 						}
@@ -72,7 +81,7 @@ void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
 					
 					vTaskDelay(20);
 					
-					if(LastExecStat() != OP_SUCCESS)
+					if(LastExecStat() != OP_SUCCESS)		// If the TCPClientOpen command is excecuted successfully
 					{
 						IOPut(p19, off);
 						UARTWrite(1, "Errors on TCPClientOpen function!\r\n");	
@@ -94,8 +103,9 @@ void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
 					//TCPStatus(&sockTcp);
 					TCPStatus(sockTcp);
 					
+					// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
 					if(AppTaskStart == 0) {
-						while(LastExecStat() == OP_EXECUTION) {
+						while(LastExecStat() == OP_EXECUTION) {		// Checking if the TCPStatus command is excecuted
 							vTaskDelay(20);
 							IOPut(p19, toggle);
 						}
@@ -110,7 +120,7 @@ void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
 					
 					vTaskDelay(20);
 					
-					if(LastExecStat() != OP_SUCCESS)
+					if(LastExecStat() != OP_SUCCESS)		// If the TCPStatus command is excecuted successfully
 					{
 						IOPut(p19, off);
 						UARTWrite(1, "Errors on updating TCPStatus!\r\n");	
@@ -126,26 +136,24 @@ void TCPConnect(TCP_SOCKET *sockTcp, char *IP, char *Port) {
 						//sprintf(toUART, "RxLen: %d\r\n", sockTcp.rxLen);
 						sprintf(toUART, "RxLen: %d\r\n", sockTcp->rxLen);
 						UARTWrite(1, toUART);	
-						currentState++; // execute next step
+						currentState++; // completed Task
 					}
 					break;
 		}
 	}
+	return 0;
 }
 
+// Sends msg to TCP connection in Standard Mode, noted by the TCP_SOCKET
 int TCPSend(TCP_SOCKET *sockTcp, char *msg) {
 	
 	UARTWrite(1, "Sending data...");
  		 
 	TCPWrite(sockTcp, msg, strlen(msg));
-	/*while(LastExecStat() == OP_EXECUTION) {
-		vTaskDelay(20);
-		IOPut(p19, toggle);
-	}
-	vTaskDelay(20);
-	*/
+	
+	// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
 	if(AppTaskStart == 0) {
-		while(LastExecStat() == OP_EXECUTION) {
+		while(LastExecStat() == OP_EXECUTION) {		// Checking if the TCPWrite command is excecuted
 			vTaskDelay(20);
 			IOPut(p19, toggle);
 		}
@@ -161,7 +169,7 @@ int TCPSend(TCP_SOCKET *sockTcp, char *msg) {
 	vTaskDelay(20);
 	
 	
-	if(LastExecStat() != OP_SUCCESS)
+	if(LastExecStat() != OP_SUCCESS)		// If the TCPWrite command is excecuted successfully
 	{
 		IOPut(p19, off);
 		UARTWrite(1, "Errors sending TCP data!\r\n");	
@@ -178,38 +186,39 @@ int TCPSend(TCP_SOCKET *sockTcp, char *msg) {
 
 }
 
+// Sends data to TCP connection in Low Level Mode
 int lTCPSend(TCP_SOCKET *sockTcp, char *msg) {
-	LLModeEnable();
+	LLModeEnable();		// Entering Low Level Mode
 	
 	UARTWrite(1, "Sending data...");
  		 
 	char toGSM[20];
-	sprintf(toGSM, "AT+KTCPSND=%d,%d\r", sockTcp->number, strlen(msg));
+	sprintf(toGSM, "AT+KTCPSND=%d,%d\r", sockTcp->number, strlen(msg));		// sends data to given socket no.
 	int i=0;
 	
 	UARTWrite(1, toGSM);
 	LLWrite(toGSM,strlen(toGSM));
 	checkCONNECT = TRUE;
-	ReadGSM();
+	ReadGSM();							// gets "CONNECT" keyword from the GSM Modem
 	while (LLBufferSize() != 0)
 		ReadGSM();
 	
 	char EOFpattern[] = "--EOF--Pattern--";
 	
 	UARTWrite(1, "\r\nWriting Data\r\n");
-	LLWrite(msg,strlen(msg));
+	LLWrite(msg,strlen(msg));			// sending msg
 	
 	vTaskDelay(50);
-	LLWrite(EOFpattern, strlen(EOFpattern));
+	LLWrite(EOFpattern, strlen(EOFpattern));		// sending EOF_PATTERN
 	
 	UARTWrite(1, "\r\nData Sent\r\n");
 	
 	checkOK = TRUE;
-	ReadGSM();
+	ReadGSM();		// getting "OK" from GSM Modem
 	
-	STDModeEnable();
+	STDModeEnable();	// Entering back to Standard Mode
 	
-	while(LastExecStat() == OP_EXECUTION) {						
+	while(LastExecStat() == OP_EXECUTION) {					// Waiting until Standard Mode is Enabled	
 		vTaskDelay(20);
 		IOPut(p19, toggle);
 	}
@@ -226,7 +235,7 @@ int lTCPSend(TCP_SOCKET *sockTcp, char *msg) {
 		IOPut(p19, off);
 		//return 0;
 	}
-	while(LastConnStatus() != REG_SUCCESS)
+	while(LastConnStatus() != REG_SUCCESS)		// waiting until GSM is registered, as reentering to Standard Mode resets the GSM module
     {
     	vTaskDelay(20);
     	IOPut(p21, toggle);
@@ -237,6 +246,7 @@ int lTCPSend(TCP_SOCKET *sockTcp, char *msg) {
 	return 0;
 }
 
+// Recieves data from TCP connection in Standard Mode, noted by the TCP_SOCKET and puts data in inBuff
 int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 	currentState = 0;
 	
@@ -244,12 +254,24 @@ int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 	while(currentState != 2) {
 		switch(currentState) {
 			case 0:	TCPStatus(sockTcp);
-					while(LastExecStat() == OP_EXECUTION) {
-						vTaskDelay(20);
-						IOPut(p19, toggle);
+					
+					// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
+					if(AppTaskStart == 0) {
+						while(LastExecStat() == OP_EXECUTION) {		// Checking if the TCPStatus command is excecuted
+							vTaskDelay(20);
+							IOPut(p19, toggle);
+						}
 					}
+					else {
+						IOPut(p19, on);
+						while(LastExecStat() == OP_EXECUTION) {
+							SampleTask();
+						}
+						IOPut(p19, off);
+					}
+					
 					vTaskDelay(20);
-					if(LastExecStat() != OP_SUCCESS)
+					if(LastExecStat() != OP_SUCCESS)		// If the TCPStatus command is excecuted successfully
 					{
 						UARTWrite(1, "Errors on TCPStatus!\r\n");	
 						currentState = 0; // Repeat from case 1	
@@ -271,12 +293,22 @@ int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 					TCPRead(sockTcp, inBuff, RxFlag);
 					inBuff[RxFlag] = '\0';
 					
-					while(LastExecStat() == OP_EXECUTION) {
-						vTaskDelay(20);
-						IOPut(p19, toggle);
+					// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
+					if(AppTaskStart == 0) {
+						while(LastExecStat() == OP_EXECUTION) {		// Checking if the TCPRead command is excecuted
+							vTaskDelay(20);
+							IOPut(p19, toggle);
+						}
+					}
+					else {
+						IOPut(p19, on);
+						while(LastExecStat() == OP_EXECUTION) {
+							SampleTask();
+						}
+						IOPut(p19, off);
 					}
 					vTaskDelay(20);
-					if(LastExecStat() != OP_SUCCESS)
+					if(LastExecStat() != OP_SUCCESS)		// If the TCPRead command is excecuted successfully
 					{
 						UARTWrite(1, "Errors on reading TCP buffer!\r\n");	
 						return -1;
@@ -293,12 +325,13 @@ int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 	return 0;
 }
 
+// Recieves data from TCP connection in Low Level Mode, noted by the TCP_SOCKET
 int lTCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
-	LLModeEnable();
+	LLModeEnable();		// Entering Low Level Mode
 	
 	char toGSM[30];
 	ReadGSM();
-	getDATA();
+	getDATA();			// waiting to get notification for data recieved from GSM module
 	//vTaskDelay(500);
 	
 	UARTWrite(1,"\r\nGOT DATA\r\n");
@@ -307,28 +340,28 @@ int lTCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 	LLWrite(toGSM, strlen(toGSM));
 	checkOK = TRUE;
 	getDATE = TRUE;
-	ReadGSM();
+	ReadGSM();			// recieving Data
 	while (LLBufferSize() != 0)
 		ReadGSM();
 	
 	strcpy(inBuff, Date);
 		
-	sprintf(toGSM, "AT+KTCPCLOSE=%d,1\r", sockTcp->number);
+	sprintf(toGSM, "AT+KTCPCLOSE=%d,1\r", sockTcp->number);		// closing TCP socket
 	LLWrite(toGSM, strlen(toGSM));
 	checkOK = TRUE;
 	ReadGSM();
 	while (LLBufferSize() != 0)
 		ReadGSM();
 		
-	LLWrite("AT+KTCPDEL=1\r", 13);
+	LLWrite("AT+KTCPDEL=1\r", 13);		// deleting TCP socket
 	checkOK = TRUE;
 	ReadGSM();
 	while (LLBufferSize() != 0)
 		ReadGSM();
 		
-	STDModeEnable();
+	STDModeEnable();		// Entering back to Standard Mode
 	
-	while(LastExecStat() == OP_EXECUTION) {						
+	while(LastExecStat() == OP_EXECUTION) {						// Waiting until Standard Mode is Enabled
 		vTaskDelay(20);
 		IOPut(p19, toggle);
 	}
@@ -345,7 +378,7 @@ int lTCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 		IOPut(p19, off);
 		//return 0;
 	}
-	while(LastConnStatus() != REG_SUCCESS)
+	while(LastConnStatus() != REG_SUCCESS)		// waiting until GSM is registered, as reentering to Standard Mode resets the GSM module
     {
     	vTaskDelay(20);
     	IOPut(p21, toggle);
@@ -356,14 +389,25 @@ int lTCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 	return 0;
 }
 
+
+// Closing TCP connection in Standard Mode, noted by TCP_SOCKET
 int TCPClose(TCP_SOCKET *sockTcp) {
 	UARTWrite(1, "\r\n\r\nClosing socket...");
 	//TCPClientClose(&sockTcp);
 	TCPClientClose(sockTcp);
 
-	while(LastExecStat() == OP_EXECUTION) {						
-		vTaskDelay(20);
-		IOPut(p19, toggle);
+	if(AppTaskStart == 0) {
+		while(LastExecStat() == OP_EXECUTION) {
+			vTaskDelay(20);
+			IOPut(p19, toggle);
+		}
+	}
+	else {
+		IOPut(p19, on);
+		while(LastExecStat() == OP_EXECUTION) {
+			SampleTask();
+		}
+		IOPut(p19, off);
 	}
 	
 	vTaskDelay(20);
