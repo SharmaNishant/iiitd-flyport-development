@@ -251,11 +251,12 @@ void AppTask()
 			
 			STDModeEnable();	// Entering back to Standard Mode
 	
+			IOPut(p19, on);
 			while(LastExecStat() == OP_EXECUTION) {					// Waiting until Standard Mode is Enabled	
-				vTaskDelay(20);
-				IOPut(p19, toggle);
+				SampleTask();
+				
 			}
-			
+			IOPut(p19, off);
 			vTaskDelay(20);
 			if(LastExecStat() != OP_SUCCESS)
 			{
@@ -268,10 +269,10 @@ void AppTask()
 				IOPut(p19, off);
 				//return 0;
 			}
+			IOPut(p21, off);
 			while(LastConnStatus() != REG_SUCCESS)		// waiting until GSM is registered, as reentering to Standard Mode resets the GSM module
 			{
-				vTaskDelay(20);
-				IOPut(p21, toggle);
+				SampleTask();
 			}
 			IOPut(p21, on);
 			
