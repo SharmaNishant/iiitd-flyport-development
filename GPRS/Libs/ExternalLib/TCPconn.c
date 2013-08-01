@@ -251,9 +251,15 @@ int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 	currentState = 0;
 	
 	int RxFlag=0;
+	int Count = 0;
 	while(currentState != 2) {
+		if(Count == 50) {
+			UARTWrite(1, "Read TIMEOUT\r\n");
+			return -1;
+		}
 		switch(currentState) {
-			case 0:	TCPStatus(sockTcp);
+			case 0:	Count++;
+					TCPStatus(sockTcp);
 					
 					// If we are not sampling, then we add delay until command is excecuted, else we call Sample Task continously
 					if(AppTaskStart == 0) {

@@ -22,9 +22,10 @@ int sent[sensor_END];
 char sensdata[sensor_END][600];
 
 int AppTaskStart = 0;
-int alarmupload;
-int alarmcount=0;
-int alarmread=0;
+int alarmcount[sensor_END];
+int alarmread[sensor_END];
+
+char sampletime[sensor_END][25];
 
 //xTaskHandle hPostTask;
 
@@ -47,78 +48,6 @@ char channelname[20] = "channel1";
 char unit[20] = "";
 // data readings to be sent in json_object
 char version[] = "1.0.0";
-
-/*
-// defines the JSON accepted by XIVELY
-char *json_object[] = {
-    "{\"id\" : \"", sensorname,
-    "\",\"datapoints\":[", sreadings,
-    "],\"current_value\":\"", cvalue,
-    "\"}\r\n]\r\n}\r\n}\r\n"
-};
-
-int makeJson(char *buff, enum sensor_index index)
-{
-	int i, len;
-
-	//sprintf(samplingperiod, "%d", profile.SamplingPeriod);
-
-	// clear the content buffer
-	buff[0] = '\0';
-
-	switch(index)
-	{
-		case sensor_pir:
-						taskENTER_CRITICAL();
-						strcpy(sreadings,sensdata[sensor_pir]);
-						taskEXIT_CRITICAL();
-						//UARTWrite(1,sreadings);
-						sreadings[strlen(sreadings)-1]='\0';
-						sprintf(cvalue, "%d", PIR);
-						strcpy(sensorname, "PIR");
-						for(i=0; i<size; ++i) 
-						{
-							strcat(buff, json_object[i]);
-						}	
-						// clear the readings in pirreadings so that new 10 readings can be taken
-						sensdata[sensor_pir][0] = '\0';
-						break;
-		
-		case sensor_pseudo:
-						taskENTER_CRITICAL();
-						strcpy(sreadings,sensdata[sensor_pseudo]);
-						taskEXIT_CRITICAL();
-					//	UARTWrite(1,sreadings);
-						sreadings[strlen(sreadings)-1]='\0';
-						sprintf(cvalue, "%d", PSEUDO);
-						strcpy(sensorname, "PSEUDO");
-						for(i=0; i<size; ++i) 
-						{
-							strcat(buff, json_object[i]);
-						}	
-						// clear the readings in pirreadings so that new 10 readings can be taken
-						sensdata[sensor_pseudo][0] = '\0';
-						break;
-	
-	}
-	sreadings[0] = '\0';	
-	// calculate the length of the json_object required for making the header
-	len = strlen(buff);
-	return len;
-}
-
-// HTTP Header format
-char post_header[] = 
-	"{\r\n"
-	"\"method\" : \"put\",\r\n"
-	"\"resource\" : \"%s\",\r\n"
-	"\"params\" : {},\r\n"
-	"\"headers\" : {\"X-ApiKey\":\"h9AR6IBz5moaK5elchPPjTirPaG6eIfNfByJZU3SGMcx0ApV\"},\r\n"
-	"\"body\" :\r\n"
-    "{\r\n"
-	"\"version\" : \"1.0.0\",\r\n"
-	"\"datastreams\" : [%s";
-*/
 
 // defines the JSON accepted by SensorAct
 char *json_object[] = {
@@ -155,6 +84,7 @@ int makeJson(char *buff, enum sensor_index index)
 			sreadings[strlen(sreadings)-1]='\0';
 			strcpy(unit, "none");
 			strcpy(sensorname, "PIRSensor");
+			strcpy(timestamp, sampletime[sensor_pir]);
 			for(i=0; i<size; ++i) 
 			{
 				strcat(buff, json_object[i]);
@@ -170,6 +100,7 @@ int makeJson(char *buff, enum sensor_index index)
 			sreadings[strlen(sreadings)-1]='\0';
 			strcpy(unit, "none");
 			strcpy(sensorname, "PseudoSensor");
+			strcpy(timestamp, sampletime[sensor_pseudo]);
 			for(i=0; i<size; ++i) 
 			{
 				strcat(buff, json_object[i]);
@@ -198,7 +129,7 @@ char post_header[] =
 char pirstr[4];
 char pseudostr[4];
 
-void UpdateTimestamp() {
+void UpdateTimestamp(i) {
 	struct tm ts;
 	
 	time_t epoch_time;
@@ -207,11 +138,11 @@ void UpdateTimestamp() {
 	
 	epoch_time = mktime(&ts);
 	
-	sprintf(timestamp,"%lu",epoch_time);
-	UARTWrite(1, timestamp);
+	sprintf(sampletime[i],"%lu",epoch_time);
+	UARTWrite(1, sampletime[i]);
 	UARTWrite(1, "\r\n");
 }
-	
+
 /* Function to Sample the readings from the sensors,
 	Have to make sure that this function does not take much time, to excecute,
 	so use no blocking function in this, as this function is called from Main thread,
@@ -225,78 +156,66 @@ void SampleTask() {
 	
 	// when alarm raises
 	if(RTCCAlarmStat()) {
-			if(alarmcount == 0)
+		int i=0;
+		
+		for( i=0 ; i<sensor_END ; i++ ) {
+			if(alarmcount[i] == 0)
 			{
-				UpdateTimestamp();
+				UpdateTimestamp(i);
 			}
 			
-			if(alarmcount % profile.SamplingPeriod == 0) //Assumption: Sampling period is integer
-				alarmread = 1;
+			if(alarmcount[i] % profile.SamplingPeriod == 0) //Assumption: Sampling period is integer
+				alarmread[i] = 1;
 			
-			if(alarmread == 1) {
+			if(alarmread[i] == 1) {
+				if(i == sensor_pir) {
+					UARTWrite(1, "PIR : ");
+					taskENTER_CRITICAL();
+					if(alarmcount[sensor_pir]%2 == 0)	PIR = 1;
+					else
+					PIR = PIRRead();			// get PIR data
+					sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
+					taskEXIT_CRITICAL();	
+					
+					taskENTER_CRITICAL();
+					strcat(sensdata[sensor_pir],pirstr);
+					taskEXIT_CRITICAL();
+				}
+				else if(i == sensor_pseudo) {
+					UARTWrite(1, "PSEUDO : ");
+					taskENTER_CRITICAL();
+					if(alarmcount[sensor_pseudo]%2 == 0)	PSEUDO = 1;
+					else
+					PSEUDO = pseudoRead();			// get PSEUDO data
+					sprintf(pseudostr,"%d,",PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
+					taskEXIT_CRITICAL();
+					
+					taskENTER_CRITICAL();
+					strcat(sensdata[sensor_pseudo],pseudostr);
+					taskEXIT_CRITICAL();
+				}		
 				struct tm mytime;
 				RTCCGet(&mytime);
 				UARTWrite(1, "Sampling Data - ");
 				UARTWrite(1, asctime(&mytime));
-
-				
-				/*	FOR UPLOADING DATA TO XIVELY.COM
-				struct tm now;
-				RTCCGet(&now);
-				strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M.%SZ", &now);
-				
-				taskENTER_CRITICAL();
-				if(alarmcount%2 == 0)	PIR = 1;
-				else
-				PIR = PIRRead();			// get PIR data
-				sprintf(pirstr,"{\"at\":\"%s\",\"value\":\"%d\"},",timestamp,PIR);	//Copy PIR data in to PIR data string
-				//UARTWrite(1, pirstr);
-				taskEXIT_CRITICAL();*/
-				
-				/*taskENTER_CRITICAL();
-				if(alarmcount%2 == 0)	PSEUDO = 1;
-				else
-				PSEUDO = pseudoRead();			// get PSEUDO data
-				sprintf(pseudostr,"{\"at\":\"%s\",\"value\":\"%d\"},",timestamp,PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
-				//UARTWrite(1, pseudostr);
-				taskEXIT_CRITICAL();*/
-				
-				/// FOR UPLOADING DATA TO SENSORACT
-				taskENTER_CRITICAL();
-				if(alarmcount%2 == 0)	PIR = 1;
-				else
-				PIR = PIRRead();			// get PIR data
-				sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
-				taskEXIT_CRITICAL();							
-				
-				taskENTER_CRITICAL();
-				if(alarmcount%2 == 0)	PSEUDO = 1;
-				else
-				PSEUDO = pseudoRead();			// get PSEUDO data
-				sprintf(pseudostr,"%d,",PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
-				taskEXIT_CRITICAL();
-				
-				taskENTER_CRITICAL();
-				strcat(sensdata[sensor_pir],pirstr);
-				taskEXIT_CRITICAL();
-				
-				taskENTER_CRITICAL();
-				strcat(sensdata[sensor_pseudo],pseudostr);
-				taskEXIT_CRITICAL();
-				
-				alarmread = 0;
+				alarmread[i] = 0;
 			}
-			
+						
 			//If the buffer of data gets filled, clear the buffer
-			if(strlen(sensdata[sensor_pir])>=590 ||  strlen(sensdata[sensor_pseudo])>=590) {
+			if(strlen(sensdata[i])>=590) {
 				UARTWrite(1, "\r\nClearing Data\r\n");
-				sensdata[sensor_pir][0] = '\0';
-				sensdata[sensor_pseudo][0] = '\0';
+				sensdata[i][0] = '\0';
+				//sensdata[sensor_pseudo][0] = '\0';
 			}
-			alarmcount++;
+			alarmcount[i]++;
 		}
+	}
 }
 
+// to check is the Flyport is connected to the server
+BOOL isConnected = FALSE;
+
+int number_Fail = 0;
 
 /* Function to start Sampling, and connect to server to send data also,
 	continously poll, to check if there is something recieved by SMS, or on UART,
@@ -306,12 +225,14 @@ void AppTask()
 	TCP_SOCKET sendSOCK;
 	sendSOCK.number = INVALID_SOCKET;
 	
+	alarmcount[sensor_pir] = 0;	
+	alarmcount[sensor_pseudo] = 0;	
 	AppTaskStart = 1;
 	
-	TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
-	
-	alarmcount = 0;		
-	
+	int ret = TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
+	if(ret == 0)
+		isConnected = TRUE;
+	 		
 	while(1)
 	{       
 		// If something is recieved on UART buffer calls UARTcomm
@@ -325,19 +246,56 @@ void AppTask()
 			SMSUpdate();
 		}
 		
-		if(alarmcount % profile.PublishPeriod == 0)
+		if(number_Fail == 5) {
+			LLModeEnable();
+			
+			STDModeEnable();	// Entering back to Standard Mode
+	
+			while(LastExecStat() == OP_EXECUTION) {					// Waiting until Standard Mode is Enabled	
+				vTaskDelay(20);
+				IOPut(p19, toggle);
+			}
+			
+			vTaskDelay(20);
+			if(LastExecStat() != OP_SUCCESS)
+			{
+				UARTWrite(1, "Errors Starting Standard Mode\r\n");	
+				//return -1;	
+			}	
+			else
+			{
+				UARTWrite(1, "Standard Mode Enabled\r\n");	
+				IOPut(p19, off);
+				//return 0;
+			}
+			while(LastConnStatus() != REG_SUCCESS)		// waiting until GSM is registered, as reentering to Standard Mode resets the GSM module
+			{
+				vTaskDelay(20);
+				IOPut(p21, toggle);
+			}
+			IOPut(p21, on);
+		}
+		
+		int i;
+		if(alarmcount[0] % profile.PublishPeriod == 0)
 		{
-			alarmupload = 1;
-			alarmcount = 0;
-			
-			int length;
-			char bufHTTPheader[1024];
-			char RequestBuffer[1072];
-			
-			UARTWrite(1, "ALARM\r\n");
-			
-			int i;
-			for(i=0;i<sensor_END;i++) {
+			for(i=0 ; i<sensor_END ; i++) {			
+				int length;
+				char bufHTTPheader[1024];
+				char RequestBuffer[1072];
+				
+				UARTWrite(1, "ALARM\r\n");
+							
+				if(!isConnected)
+					ret = TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);					
+				
+				if(ret == -1) {
+					number_Fail++;
+					break;
+				}
+				else {
+					isConnected = TRUE;
+				}
 				length = makeJson(bufHTTPheader, i); //After this function, JSON header is in the bufHTTPheader
 				
 				// send the data length to makeheader which makes and sends the header
@@ -351,8 +309,9 @@ void AppTask()
 				
 				// if sending failed, connect to server again and continue
 				if(ret == -1) {
-					TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
-					continue;
+					number_Fail++;
+					isConnected = FALSE;
+					break;
 				}
 				
 				// recieving the response
@@ -372,13 +331,16 @@ void AppTask()
 					}
 					sensdata[i][k] = '\0';
 					UARTWrite(1, "\r\nData Cleared");
-					
+					alarmcount[i] = 0;
 					// sent data cleared, start sampling
 					AppTaskStart = 1;
+					number_Fail = 0;
 				}
 				// if response is not recieved, connect to server again
 				else {
-					TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
+					number_Fail++;
+					isConnected = FALSE;
+					break;
 				}
 			}				
 		}

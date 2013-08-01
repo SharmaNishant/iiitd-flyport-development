@@ -13,7 +13,7 @@ checkDATA = FALSE;
 getDATE = FALSE;
 
 // buffer to store GSM response
-char ReadString[100];
+char ReadString[500];
 char Date[40];
 
 // functions to check for specific sequence in GSM response, and wait for response until sequence is recieved
