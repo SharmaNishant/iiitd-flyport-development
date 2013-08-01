@@ -274,6 +274,8 @@ void AppTask()
 				IOPut(p21, toggle);
 			}
 			IOPut(p21, on);
+			
+			number_Fail = 0;
 		}
 		
 		int i;
