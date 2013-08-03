@@ -20,6 +20,8 @@ int getDAY(char *day) {
 		return 5;
 	else if(strcmp(day, "Sat") == 0)
 		return 6;
+		
+	return -1;
 }
 
 // Returns the No. of Month taking its Name
@@ -48,6 +50,8 @@ int getMONTH(char *month) {
 		return 10;
 	else if(strcmp(month, "Dec") == 0)
 		return 11;
+		
+	return -1;
 }
 
 // Initialization of Clock
@@ -126,7 +130,7 @@ void ClockInit() {
 		
 		UARTWrite(1, date);
 		
-		int items = sscanf(date, "Date  %3s %2i %3s %4i %2i %2i %2i GMT", wday, &mday, month, &year, &hr, &min, &sec);		
+		sscanf(date, "Date  %3s %2i %3s %4i %2i %2i %2i GMT", wday, &mday, month, &year, &hr, &min, &sec);		
 	}
 	
 	// Setting the RTCC

@@ -194,7 +194,6 @@ int lTCPSend(TCP_SOCKET *sockTcp, char *msg) {
  		 
 	char toGSM[20];
 	sprintf(toGSM, "AT+KTCPSND=%d,%d\r", sockTcp->number, strlen(msg));		// sends data to given socket no.
-	int i=0;
 	
 	UARTWrite(1, toGSM);
 	LLWrite(toGSM,strlen(toGSM));

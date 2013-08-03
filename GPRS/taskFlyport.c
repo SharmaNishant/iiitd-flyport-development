@@ -31,7 +31,7 @@ void FlyportTask()
 	
 	AppTask();	// start sampling/sending data
 	
-	// This part only excecutes is AppTask() is not running
+	// This part only excecutes if AppTask() is not running, i.e error Occured in excecution
 	UARTWrite(1, "\r\nEntering infinite loop...\r\n");
 	
     while(1)

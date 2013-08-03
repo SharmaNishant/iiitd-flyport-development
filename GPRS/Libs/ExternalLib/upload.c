@@ -4,6 +4,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "profile.h"
+#include "RTCClib.h"
+#include "LowLevellib.h"
 #include "clock.h"
 #include "time.h"
 #include "TCPconn.h"
@@ -23,11 +25,10 @@ char sensdata[sensor_END][600];
 
 int AppTaskStart = 0;
 int alarmcount[sensor_END];
-int alarmread[sensor_END];
 
+// timestamp for each sensor (because it may differ)
 char sampletime[sensor_END][25];
 
-//xTaskHandle hPostTask;
 
 char sreadings[600];//JSon string to store sensor data
 
@@ -66,7 +67,7 @@ char *json_object[] = {
     "]}]}}\r\n"
 };
 
-int makeJson(char *buff, enum sensor_index index)
+int makeJson(char *buff, int index)
 {
 	int i;
 
@@ -126,6 +127,7 @@ char post_header[] =
     "\r\n"
 	"%s";
 
+// strings to store sensor readings when sampled
 char pirstr[4];
 char pseudostr[4];
 
@@ -146,7 +148,9 @@ void UpdateTimestamp(i) {
 /* Function to Sample the readings from the sensors,
 	Have to make sure that this function does not take much time, to excecute,
 	so use no blocking function in this, as this function is called from Main thread,
-	and may interfere with maintainence of GSM State Machine */
+	and may interfere with maintainence of GSM State Machine.
+	
+	***Do not use any loop inside this function***	*/
 void SampleTask() {
 	// waiting until Flyport has Initialized successfully, and is ready to sample data
 	if(AppTaskStart == 0) {
@@ -156,83 +160,88 @@ void SampleTask() {
 	
 	// when alarm raises
 	if(RTCCAlarmStat()) {
-		int i=0;
-		
-		for( i=0 ; i<sensor_END ; i++ ) {
-			if(alarmcount[i] == 0)
+		{
+			if(alarmcount[sensor_pir] == 0)		// update PIR timestamp, after PIR data is sent to server (or when initialised) 
 			{
-				UpdateTimestamp(i);
+				UpdateTimestamp(sensor_pir);
 			}
 			
-			if(alarmcount[i] % profile.SamplingPeriod == 0) //Assumption: Sampling period is integer
-				alarmread[i] = 1;
-			
-			if(alarmread[i] == 1) {
-				if(i == sensor_pir) {
-					UARTWrite(1, "PIR : ");
-					taskENTER_CRITICAL();
-					if(alarmcount[sensor_pir]%2 == 0)	PIR = 1;
-					else
-					PIR = PIRRead();			// get PIR data
-					sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
-					taskEXIT_CRITICAL();	
-					
-					taskENTER_CRITICAL();
-					strcat(sensdata[sensor_pir],pirstr);
-					taskEXIT_CRITICAL();
-				}
-				else if(i == sensor_pseudo) {
-					UARTWrite(1, "PSEUDO : ");
-					taskENTER_CRITICAL();
-					if(alarmcount[sensor_pseudo]%2 == 0)	PSEUDO = 1;
-					else
-					PSEUDO = pseudoRead();			// get PSEUDO data
-					sprintf(pseudostr,"%d,",PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
-					taskEXIT_CRITICAL();
-					
-					taskENTER_CRITICAL();
-					strcat(sensdata[sensor_pseudo],pseudostr);
-					taskEXIT_CRITICAL();
-				}		
+			if(alarmcount[sensor_pir] % profile.SamplingPeriod == 0) {//Assumption: Sampling period is integer
+				UARTWrite(1, "PIR : ");
+				taskENTER_CRITICAL();			
+				PIR = PIRRead();			// get PIR data
+				sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
+				taskEXIT_CRITICAL();	
+				
+				taskENTER_CRITICAL();
+				strcat(sensdata[sensor_pir],pirstr);
+				taskEXIT_CRITICAL();
 				struct tm mytime;
 				RTCCGet(&mytime);
 				UARTWrite(1, "Sampling Data - ");
 				UARTWrite(1, asctime(&mytime));
-				alarmread[i] = 0;
 			}
-						
 			//If the buffer of data gets filled, clear the buffer
-			if(strlen(sensdata[i])>=590) {
-				UARTWrite(1, "\r\nClearing Data\r\n");
-				sensdata[i][0] = '\0';
-				//sensdata[sensor_pseudo][0] = '\0';
+			if(strlen(sensdata[sensor_pir])>=590) {
+				UARTWrite(1, "\r\nPIR: Clearing Data\r\n");
+				sensdata[sensor_pir][0] = '\0';
+			}	
+			alarmcount[sensor_pir]++;
+		}
+		{
+			if(alarmcount[sensor_pseudo] == 0) // update PSEUDO timestamp, after PSEUDO data is sent to server (or when initialised)
+			{
+				UpdateTimestamp(sensor_pseudo);
 			}
-			alarmcount[i]++;
+			
+			if(alarmcount[sensor_pseudo] % profile.SamplingPeriod == 0) {//Assumption: Sampling period is integer
+				UARTWrite(1, "PSEUDO : ");
+				taskENTER_CRITICAL();
+				PSEUDO = pseudoRead();			// get PSEUDO data
+				sprintf(pseudostr,"%d,",PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
+				taskEXIT_CRITICAL();
+				
+				taskENTER_CRITICAL();
+				strcat(sensdata[sensor_pseudo],pseudostr);
+				taskEXIT_CRITICAL();
+				struct tm mytime;
+				RTCCGet(&mytime);
+				UARTWrite(1, "Sampling Data - ");
+				UARTWrite(1, asctime(&mytime));
+			}
+			//If the buffer of data gets filled, clear the buffer
+			if(strlen(sensdata[sensor_pseudo])>=590) {
+				UARTWrite(1, "\r\nPSEUDO: Clearing Data\r\n");
+				sensdata[sensor_pseudo][0] = '\0';
+			}																
+			alarmcount[sensor_pseudo]++;	
 		}
 	}
 }
 
-// to check is the Flyport is connected to the server
-BOOL isConnected = FALSE;
 
+// variable to store no. of failures to send data
 int number_Fail = 0;
 
-/* Function to start Sampling, and connect to server to send data also,
+/* Function signals to start Sampling, and connect to server during publish period, send data, reciecve response and the close the socket,
+	
+	Also,
 	continously poll, to check if there is something recieved by SMS, or on UART,
 */
 void AppTask()
 {			
-	TCP_SOCKET sendSOCK;
-	sendSOCK.number = INVALID_SOCKET;
-	
+	// initialising alarmcount, and start Sampling
 	alarmcount[sensor_pir] = 0;	
 	alarmcount[sensor_pseudo] = 0;	
 	AppTaskStart = 1;
 	
-	int ret = TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);
-	if(ret == 0)
-		isConnected = TRUE;
-	 		
+	 	
+	/* variable to signal send data (regardless of publish period)
+			1. for the first time
+			2. when sending failed, then we continously try to send data, until sent successfully
+	*/
+	BOOL cont = TRUE;
+	
 	while(1)
 	{       
 		// If something is recieved on UART buffer calls UARTcomm
@@ -246,6 +255,7 @@ void AppTask()
 			SMSUpdate();
 		}
 		
+		// If sending failed for 5 times, we go to LowLevelMode and back to StandardMode to reset GSM Modem
 		if(number_Fail == 5) {
 			LLModeEnable();
 			
@@ -279,73 +289,84 @@ void AppTask()
 			number_Fail = 0;
 		}
 		
+		/* Publishing Data to server
+			1. when publish time reached, or
+			2. first time, or
+			3. last sending failed
+		*/
 		int i;
-		if(alarmcount[0] % profile.PublishPeriod == 0)
+		if(alarmcount[0] % profile.PublishPeriod == 0 || cont)
 		{
-			for(i=0 ; i<sensor_END ; i++) {			
-				int length;
-				char bufHTTPheader[1024];
-				char RequestBuffer[1072];
-				
-				UARTWrite(1, "ALARM\r\n");
-							
-				if(!isConnected)
-					ret = TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);					
-				
-				if(ret == -1) {
-					number_Fail++;
-					break;
-				}
-				else {
-					isConnected = TRUE;
-				}
-				length = makeJson(bufHTTPheader, i); //After this function, JSON header is in the bufHTTPheader
-				
-				// send the data length to makeheader which makes and sends the header
-				length = sprintf(RequestBuffer, post_header, profile.ServerURL, profile.ServerIP, length, bufHTTPheader);
-				
-				UARTWrite(1, RequestBuffer);
-				//vTaskDelay(50);
-								
-				// sending data
-				int ret = TCPSend(&sendSOCK, RequestBuffer);
-				
-				// if sending failed, connect to server again and continue
-				if(ret == -1) {
-					number_Fail++;
-					isConnected = FALSE;
-					break;
-				}
-				
-				// recieving the response
-				ret = TCPRecieve(&sendSOCK, bufHTTPheader);
-				
-				// is response recieved, clear the sent data from readings buffer
-				if(ret == 0) {
-					UARTWrite(1, "\r\nData Successfully Sent");
+			UARTWrite(1, "ALARM\r\n");
+			
+			TCP_SOCKET sendSOCK;		// creating socket
+			sendSOCK.number = INVALID_SOCKET;
+			
+			int ret = TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);		// connecting to server			
+			
+			if(ret == -1) {
+				number_Fail++;		// if connecting failed, we close socket and try again
+			}
+			else {			
+				// If connection established
+				for(i=0 ; i<sensor_END ; i++) {			// sending data and recieve response for each sensor
+					cont = TRUE;
 					
-					// stop sampling more data, to copy the rest of data to start
-					AppTaskStart = 0;
-					int j=0;
-					int k=0;
-					UARTWrite(1, "\r\nClearing Sent Data");
-					for(j=sent[i] ; j<strlen(sensdata[i]) ; j++) {
-						sensdata[i][k++] = sensdata[i][j];
+					int length;
+					char bufHTTPheader[1024];
+					char RequestBuffer[1072];
+					
+					length = makeJson(bufHTTPheader, i); //After this function, JSON header is in the bufHTTPheader
+					
+					// send the data length to makeheader which makes and sends the header
+					length = sprintf(RequestBuffer, post_header, profile.ServerURL, profile.ServerIP, length, bufHTTPheader);
+					
+					UARTWrite(1, RequestBuffer);
+					//vTaskDelay(50);
+									
+					// sending data
+					ret = TCPSend(&sendSOCK, RequestBuffer);
+					
+					// if sending failed, stop the loop
+					if(ret == -1) {
+						number_Fail++;
+						break;
 					}
-					sensdata[i][k] = '\0';
-					UARTWrite(1, "\r\nData Cleared");
-					alarmcount[i] = 0;
-					// sent data cleared, start sampling
-					AppTaskStart = 1;
-					number_Fail = 0;
+					
+					// recieving the response
+					ret = TCPRecieve(&sendSOCK, bufHTTPheader);
+					
+					// is response recieved, clear the sent data from readings buffer, and set cont variable to FALSE
+					if(ret == 0) {
+						UARTWrite(1, "\r\nData Successfully Sent");
+						
+						// stop sampling more data, to copy the rest of data to start
+						AppTaskStart = 0;
+						int j=0;
+						int k=0;
+						UARTWrite(1, "\r\nClearing Sent Data");
+						for(j=sent[i] ; j<strlen(sensdata[i]) ; j++) {
+							sensdata[i][k++] = sensdata[i][j];
+						}
+						sensdata[i][k] = '\0';
+						UARTWrite(1, "\r\nData Cleared");
+						alarmcount[i] = 0;
+						// sent data cleared, start sampling
+						AppTaskStart = 1;
+						number_Fail = 0;
+						
+						cont = FALSE;
+					}
+					// if response is not recieved, stop the loop
+					else {
+						number_Fail++;
+						break;
+					}
 				}
-				// if response is not recieved, connect to server again
-				else {
-					number_Fail++;
-					isConnected = FALSE;
-					break;
-				}
-			}				
+			}
+			
+			// closing the socket
+			TCPClose(&sendSOCK);
 		}
    }
 }

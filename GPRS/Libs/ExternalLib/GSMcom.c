@@ -7,10 +7,10 @@
 #include "string.h"
 
 // flags to set check for specific sequence in GSM response
-checkOK = FALSE;
-checkCONNECT = FALSE;
-checkDATA = FALSE;
-getDATE = FALSE;
+int checkOK = FALSE;
+int checkCONNECT = FALSE;
+int checkDATA = FALSE;
+int getDATE = FALSE;
 
 // buffer to store GSM response
 char ReadString[500];
@@ -45,18 +45,12 @@ void fgetDATE() {
 }
 
 void getDATA() {
-	char tmp[] = "+KTCP_DATA: ";
 	UARTWrite(1,"\r\nChecking for Data\r\n");
-	int i=0;
-	//while(i<strlen(tmp)) {
-		while(strstr(ReadString, "KTCP_DATA")==NULL) {
-			//UARTWriteCh(1,ReadString[i]);
-			//i++;
-			ReadGSM();
-		}
-		//else
-			UARTWrite(1, ReadString);
-	//}
+	
+	while(strstr(ReadString, "KTCP_DATA")==NULL) {
+		ReadGSM();
+	}
+	UARTWrite(1, ReadString);
 }
 
 // function to get GSM response, and store it in ReadString

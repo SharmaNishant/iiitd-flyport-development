@@ -2,7 +2,7 @@
 
 //default applicaton values
 #define DEFAULT_SPERIOD		5
-#define DEFAULT_PPERIOD		120
+#define DEFAULT_PPERIOD		900
 #define DEFAULT_APIKEY		"3773bd8cf9594ca7a2a6c0074f73ace7"
 #define DEFAULT_DEVICENAME	"Node-RJ"
 #define DEFAULT_LOCATION	"RJ-Home"
@@ -25,8 +25,8 @@ typedef struct tagPROFILE
 	int Signature; //Unused
 	
 	//Profile variables
-	unsigned char SamplingPeriod; //Need to be an integer
-	unsigned char PublishPeriod; //Need to be an integer
+	unsigned int SamplingPeriod; //Need to be an integer
+	unsigned int PublishPeriod; //Need to be an integer
 	char ApiKey[50];
 	char DeviceName[32];
 	char Location[32];
@@ -58,3 +58,4 @@ void ProfileDelete();
 
 void UARTcomm();
 void SMSUpdate();
+

@@ -2,6 +2,7 @@
 #include "GSM_Events.h"
 #include "libpic30.h"
 #include "string.h"
+#include "SMSlib.h"
 #include "SMScomm.h"
 
 PROFILE profile;
@@ -296,7 +297,7 @@ void SMSParse(char *to, char *msg) {
 	}
 	
 	else if(strstr(msg, "STATUS#") != NULL) {
-		return "Will Send Status in Near Future";
+		SendSMS(to, "Will Send Status in Near Future");
 	}
 	
 	// sets profile parameters and reply via SMS and save profile
