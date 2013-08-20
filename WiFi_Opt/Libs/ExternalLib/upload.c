@@ -25,7 +25,7 @@ typedef union _MRF24J40_IFS
 MRF24J40_IFREG flags;
 
 
-
+int publish_flag;
 int publish_check;
 
 
@@ -125,10 +125,8 @@ int makeJson(char *buff, enum sensor_index index)
 	{
 	case sensor_temperature:
 		vTaskSuspendAll();	
-		//taskENTER_CRITICAL();
-		//strcpy(sreadings,sensdata[sensor_temperature]);
 		strcpy(sreadings,tempdata);
-		    memset(tempdata, '\0',sizeof(tempdata));
+		memset(tempdata, '\0',sizeof(tempdata));
 		xTaskResumeAll();	
 		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
@@ -144,9 +142,7 @@ int makeJson(char *buff, enum sensor_index index)
 
 	case sensor_pir:
 		vTaskSuspendAll();
-		//taskENTER_CRITICAL();
 		strcpy(sreadings,pirdata);
-		//strcpy(sreadings,sensdata[sensor_pir]);
     memset(pirdata, '\0',sizeof(pirdata));
 		xTaskResumeAll();
 		//taskEXIT_CRITICAL();
@@ -163,9 +159,7 @@ int makeJson(char *buff, enum sensor_index index)
 		
 	case sensor_light:
 		vTaskSuspendAll();
-		//taskENTER_CRITICAL();
 		strcpy(sreadings,lightdata);
-		//strcpy(sreadings,sensdata[sensor_light]);
 		memset(lightdata, '\0',sizeof(lightdata));
 		xTaskResumeAll();
 		//taskEXIT_CRITICAL();
@@ -561,6 +555,7 @@ void PostTask()
 		UARTWrite(1,"End.\r\n");
 		taskEXIT_CRITICAL();
 		//EmptyData();
+		if(publish_flag==0)
 		publish_check=1;
 	}
 }
@@ -573,7 +568,7 @@ void tcp_socket_handle()
 	{
 		TCPClientClose( Socket);
 		taskENTER_CRITICAL();
-		UARTWrite(1,"Clean Socket close\r\n");
+		UARTWrite(1,"Clean Socket close by socket handle\r\n");
 		taskEXIT_CRITICAL();
 	}
 }
@@ -582,17 +577,27 @@ void tcp_socket_handle()
 
 void publish_handle()
 {
+	publish_flag=0;
 	UARTWrite(1,"Handling Publish");
 	if(profile.AppEnable==1)
 	{	publish_check=0;
+		UpdateTimestamp();
 		alarmupload=1;
+		//alarmcount=0;
 		while(publish_check==0);
 	}
+	publish_flag=1;
 }
 
 
 void clean_data()
 {
-	if(strlen(sreadings)>=650 || strlen(tempdata) >= 625 || strlen(pirdata)>= 325 || strlen(lightdata)>= 625 || strlen(wifidata)>= 295)
-	{EmptyData();}
+	int max =  (profile.PublishPeriod/profile.ScanPeriod )*5;
+	int min = (profile.PublishPeriod/profile.ScanPeriod )*2;
+	
+	if(strlen(sreadings)>=750 || strlen(tempdata) > max || strlen(pirdata)> min || strlen(lightdata)> max || strlen(wifidata)>= 295)
+	{
+		UARTWrite(1,"\ncleaning buffers\n");
+		EmptyData();}
 }
+

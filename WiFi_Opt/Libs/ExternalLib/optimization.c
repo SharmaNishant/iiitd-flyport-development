@@ -42,24 +42,6 @@ void optimization()
 		INTInit(2, external_interrupt_function, 0);
 		INTEnable(2);	
 	}
-	/*// Set RTCC
-	myrtcc.year = 11; 
-	myrtcc.month = 11;
-	myrtcc.dweek = 3; 
-	myrtcc.day = 2;
-	myrtcc.hour = 16;
-	myrtcc.min = 23;
-	myrtcc.sec = 1;
-	// Write settings on internal registers
-	RTCCWrite(&myrtcc);
-	// Create alarm configuration
-	myalarm = myrtcc;
-	myalarm.sec = myalarm.sec + 20;
-	// Set Alarm configuration to internal registers
-	RTCCSetAlarm(&myalarm, REPEAT_INFINITE, EVERY_SEC);
-	// Active alarm
-	RTCCRunAlarm(1); // 1 turn on, 0 turn off*/
-
 	alarmflag_opt = 0;
 	while(1)
 	{
@@ -91,7 +73,7 @@ void optimization()
 			off_flag=0;
 			opt_trig=0;
 			if(profile.AppEnable)
-				publish_handle();//to publish any data present before going to sleep
+			{publish_handle();}//to publish any data present before going to sleep
 			sprintf(input,"\nLast Wifi Status : %d\n\n",WFStatus);
 			UARTWrite(1,input);
 			if(profile.OptLevel==LVL_WIFI)
