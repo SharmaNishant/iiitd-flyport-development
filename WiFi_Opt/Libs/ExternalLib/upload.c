@@ -24,7 +24,7 @@ typedef union _MRF24J40_IFS
 } MRF24J40_IFREG;
 MRF24J40_IFREG flags;
 
-
+	int alarmcount;
 int publish_flag;
 int publish_check;
 
@@ -242,7 +242,6 @@ void AppTask()
 	char pirstr[4];
 	char tempstr[10];
 	char lightstr[10];
-	int alarmcount;
 	int trigger=0;
 	vTaskSuspendAll();	//Sneihil
 	memset(sreadings, '\0', sizeof(sreadings));
@@ -583,7 +582,7 @@ void publish_handle()
 	{	publish_check=0;
 		UpdateTimestamp();
 		alarmupload=1;
-		//alarmcount=0;
+		alarmcount=0;
 		while(publish_check==0);
 	}
 	publish_flag=1;
@@ -592,10 +591,7 @@ void publish_handle()
 
 void clean_data()
 {
-	int max =  (profile.PublishPeriod/profile.ScanPeriod )*5;
-	int min = (profile.PublishPeriod/profile.ScanPeriod )*2;
-	
-	if(strlen(sreadings)>=750 || strlen(tempdata) > max || strlen(pirdata)> min || strlen(lightdata)> max || strlen(wifidata)>= 295)
+	if(strlen(sreadings)>=750 || strlen(tempdata) > 700 || strlen(pirdata)> 250 || strlen(lightdata)> 700 || strlen(wifidata)>= 295)
 	{
 		UARTWrite(1,"\ncleaning buffers\n");
 		EmptyData();}
