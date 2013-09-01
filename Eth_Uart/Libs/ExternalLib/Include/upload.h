@@ -1,7 +1,7 @@
 
 #define MAX_RETRIES 5
 
-void AppTask();
+
 void PostTask();
 
 enum sensor_index {
@@ -10,3 +10,9 @@ enum sensor_index {
 	sensor_light//,sensor_tag
 };
 
+#ifdef uart 
+void UpTask();
+void AppTask(char upir[],char utemp[],char ulight[])
+#else
+void AppTask();
+#endif 

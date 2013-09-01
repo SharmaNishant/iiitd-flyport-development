@@ -40,6 +40,7 @@
 #include "profile.h"
 #include "ds1820.h"
 #include "apds9300.h"
+#include "uart.h"
 #if defined(STACK_USE_HTTP2_SERVER)
 
 
@@ -241,6 +242,31 @@ void HTTPPrint_DNS2()
 	return;
 }*/
 
+#ifdef uart
+void HTTPPrint_PIR()
+{
+	/*TCPPut(sktHTTP,(BYTE*)getpir());*/
+	return;
+}
+
+void HTTPPrint_TEMP()
+{
+	/*char tmp[10];
+	sprintf(tmp, "%lf", DS1820Read());
+	TCPPutString(sktHTTP, (BYTE*)tmp);*/
+	TCPPutString(sktHTTP, (BYTE*)gettemp());
+	return;
+}
+
+void HTTPPrint_LIGHT()
+{
+	/*char tmp[10];
+	sprintf(tmp, "%f", (double)APDSRead());
+	TCPPutString(sktHTTP, (BYTE*)tmp);*/
+	TCPPutString(sktHTTP, (BYTE*)getlight());
+	return;
+}
+#else
 void HTTPPrint_PIR()
 {
 	TCPPut(sktHTTP, IOGet(p7) ? '1' : '0');
@@ -262,6 +288,7 @@ void HTTPPrint_LIGHT()
 	TCPPutString(sktHTTP, (BYTE*)tmp);
 	return;
 }
+#endif
 
 #ifdef HTTP_USE_POST
 /****************************************************************************

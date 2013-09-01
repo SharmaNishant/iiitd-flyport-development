@@ -64,7 +64,7 @@
 
 //	UART general defines
 #define UART_BUFFER_SIZE 	256
-#define UART_PORTS			1
+#define UART_PORTS			2
 
 //	UART1 defines
 #define UARTTX_TRIS			(TRISDbits.TRISD5)

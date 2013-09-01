@@ -8,6 +8,7 @@
 #include "clock.h"
 #include "apds9300.h"
 #include "mrf24fj40ma.h"
+#include "uart.h"
 typedef union _MRF24J40_IFS
 {
     BYTE Val;
@@ -210,14 +211,14 @@ volatile int alarmcount;
 
 //Thread to handle JSON post
 xTaskHandle hPostTask;
-
+/*
 //PIR Sensor value
 int PIR;
 //Temperature Sensor value
 double Temp;
 //Light Sensor value
 double Light;
-
+*/
 //Request Buffer
 char RequestBuffer[1024];
 
@@ -232,6 +233,91 @@ char post_header[] =
     "\r\n"
 	"%s";
 
+#ifdef uart
+void UpTask()
+{
+	UARTWrite(1,"Creating Task\r\n");
+	if(hPostTask == NULL)
+	{
+		//Creates the task dedicated to user code
+		xTaskCreate(PostTask,(signed char*) "Post" , (configMINIMAL_STACK_SIZE * 4), NULL, tskIDLE_PRIORITY + 1, &hPostTask);	
+	}
+	UARTWrite(1,"Task initiated\r\n");
+}
+
+
+void AppTask(char upir[],char utemp[],char ulight[])
+{	
+	/*char pirstr[4];
+	char tempstr[10];
+	char lightstr[10];*/
+	
+	//alarmflag = 0;
+	//alarmcount = 0;
+//	while(1)
+	{       
+		//while(alarmflag != 1) vTaskDelay(1);
+		//alarmflag=0;
+		
+		if(alarmcount == 0)
+		{
+			UpdateTimestamp();
+		}
+		
+		
+			
+		//if(alarmread == 1)
+		{	alarmread = 0;
+			
+			/*taskENTER_CRITICAL();//Put string copy in seperate tasks to avoid intermixing of sensor param's during strcpy
+			//Temp = DS1820Read();		// get Temperature data
+			sprintf(tempstr,"%0.1f,",Temp);//Copy Temp data in to Temp data string
+			taskEXIT_CRITICAL();
+
+			taskENTER_CRITICAL();
+			Light = APDSRead();			// get Light data
+			sprintf(lightstr,"%0.1f,",Light);//Copy Light data in to Light data string
+			taskEXIT_CRITICAL();
+
+			taskENTER_CRITICAL();
+			PIR = PIRRead();			// get PIR data
+			sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
+			taskEXIT_CRITICAL();*/
+			
+			UARTWrite(1,"values adding\r\n");	
+			
+			taskENTER_CRITICAL(); //Put in critical section such that it is not interrupted by the post task
+			strcat(sensdata[sensor_temperature],utemp);
+			UARTWrite(1,utemp);
+			taskEXIT_CRITICAL();
+			
+			taskENTER_CRITICAL();
+			strcat(sensdata[sensor_light],ulight);
+			taskEXIT_CRITICAL();
+			
+			taskENTER_CRITICAL();
+			strcat(sensdata[sensor_pir],upir);
+			taskEXIT_CRITICAL();
+		/*	
+			taskENTER_CRITICAL();
+			strcat(senstagdata,tagdata);
+			tagdata[0]='\0';
+			taskEXIT_CRITICAL();
+		*/
+		}
+		UARTWrite(1,"values added\r\n");
+		alarmcount++;
+		/*if(alarmcount % profile.PublishPeriod == 0)
+		{
+			UARTWrite(1,"alarm upload\r\n");
+			alarmupload = 1;
+			alarmcount = 0;
+		}*/
+		UARTWrite(1,"AppTask ended\r\n");
+   }
+   return;
+}
+#else
 void AppTask()
 {	
 	char pirstr[4];
@@ -349,6 +435,9 @@ void AppTask()
 		}
    }
 }
+#endif
+
+
 
 void PostTask()
 {
