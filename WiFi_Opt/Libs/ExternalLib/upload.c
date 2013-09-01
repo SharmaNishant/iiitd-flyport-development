@@ -421,7 +421,7 @@ void AppTask()
 		sprintf(buf,"trigger:%d\r\n",trigger);
 		UARTWrite(1,buf);
 		trigger++;
-		clean_data(); //to clean all the buffers if they are full
+		//clean_data(); //to clean all the buffers if they are full
 		if(alarmcount % profile.PublishPeriod == 0)
 		{
 			/*if(profile.SwitchEnable)
@@ -540,6 +540,7 @@ void PostTask()
 				//delay
 				vTaskDelay(20);//200
 				//Disconnect
+				UARTWrite(1,RequestBuffer);
 				UARTWrite(1,"Disconnecting...\r\n"); //After sending every sensor data, the connection is disconnected
 				TCPClientClose ( Socket );
 				flagTCPisCON=FALSE;
