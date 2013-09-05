@@ -66,16 +66,16 @@ char version[] = "1.0.0";
 // data buffer to store json_object
 //char sensdata[NUM_SENSORS][128];
 
-char tempdata[750];
-char pirdata[350];
-char lightdata[750];
+char tempdata[128];
+char pirdata[128];
+char lightdata[128];
 
 //char senstagdata[MAX_TAGS][RSSI_INDEX];//RSSI_INDEX had to be optimsed // manoj
 //char tagdata[128];// New string for loading tag data 
 //char senstagdata[200];
 
 char wifidata[300];
-char senswifidata[800];
+char senswifidata[300];
 
 char sreadings[800];//JSon string to store sensor data
 //char tagreadings[MAX_TAGS][RSSI_INDEX];//JSON String to store RSSI stats form TAG
@@ -540,7 +540,7 @@ void PostTask()
 				//delay
 				vTaskDelay(20);//200
 				//Disconnect
-				UARTWrite(1,RequestBuffer);
+				UARTWrite(1,bufHTTPheader);
 				UARTWrite(1,"Disconnecting...\r\n"); //After sending every sensor data, the connection is disconnected
 				TCPClientClose ( Socket );
 				flagTCPisCON=FALSE;
@@ -592,7 +592,7 @@ void publish_handle()
 
 void clean_data()
 {
-	if(strlen(sreadings)>=750 || strlen(tempdata) > 700 || strlen(pirdata)> 250 || strlen(lightdata)> 700 || strlen(wifidata)>= 295)
+	if(strlen(sreadings)>=300 || strlen(tempdata) > 128 || strlen(pirdata)> 128 || strlen(lightdata)> 128 || strlen(wifidata)>= 295)
 	{
 		UARTWrite(1,"\ncleaning buffers\n");
 		EmptyData();}

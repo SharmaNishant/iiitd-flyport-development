@@ -15,7 +15,7 @@
 
 //default applicaton values
 #define DEFAULT_SPERIOD		1
-#define DEFAULT_PPERIOD		30
+#define DEFAULT_PPERIOD		10
 #define DEFAULT_SCANPERIOD	30
 #define DEFAULT_APIKEY		"abcdefghijklmnopqrstuvxyzabcdef"
 #define DEFAULT_USERKEY		"ABCD1234"
