@@ -21,6 +21,14 @@ typedef union _MRF24J40_IFS
     }bits;
 } MRF24J40_IFREG;
 MRF24J40_IFREG flags;
+
+
+	char pirstr[4];
+	char tempstr[10];
+	char lightstr[10];
+
+
+
 // Number of sensors connected to the Flyport
 #define NUM_SENSORS 3//4 if Tag is included 
 //Number of TAGS available in the vicinity
@@ -246,7 +254,7 @@ void UpTask()
 }
 
 
-void AppTask(char upir[],char utemp[],char ulight[])
+void AppTask(int upir,float utemp,float ulight)
 {	
 	/*char pirstr[4];
 	char tempstr[10];
@@ -269,34 +277,33 @@ void AppTask(char upir[],char utemp[],char ulight[])
 		//if(alarmread == 1)
 		{	alarmread = 0;
 			
-			/*taskENTER_CRITICAL();//Put string copy in seperate tasks to avoid intermixing of sensor param's during strcpy
+			taskENTER_CRITICAL();//Put string copy in seperate tasks to avoid intermixing of sensor param's during strcpy
 			//Temp = DS1820Read();		// get Temperature data
-			sprintf(tempstr,"%0.1f,",Temp);//Copy Temp data in to Temp data string
+			sprintf(tempstr,"%0.1f,",utemp);//Copy Temp data in to Temp data string
 			taskEXIT_CRITICAL();
 
 			taskENTER_CRITICAL();
-			Light = APDSRead();			// get Light data
-			sprintf(lightstr,"%0.1f,",Light);//Copy Light data in to Light data string
+			//Light = APDSRead();			// get Light data
+			sprintf(lightstr,"%0.1f,",ulight);//Copy Light data in to Light data string
 			taskEXIT_CRITICAL();
 
 			taskENTER_CRITICAL();
-			PIR = PIRRead();			// get PIR data
-			sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
+			//PIR = PIRRead();			// get PIR data
+			sprintf(pirstr,"%d,",upir);	//Copy PIR data in to PIR data string
 			taskEXIT_CRITICAL();*/
 			
 			UARTWrite(1,"values adding\r\n");	
 			
 			taskENTER_CRITICAL(); //Put in critical section such that it is not interrupted by the post task
-			strcat(sensdata[sensor_temperature],utemp);
-			UARTWrite(1,utemp);
+			strcat(sensdata[sensor_temperature],tempstr);
 			taskEXIT_CRITICAL();
 			
 			taskENTER_CRITICAL();
-			strcat(sensdata[sensor_light],ulight);
+			strcat(sensdata[sensor_light],lightstr);
 			taskEXIT_CRITICAL();
 			
 			taskENTER_CRITICAL();
-			strcat(sensdata[sensor_pir],upir);
+			strcat(sensdata[sensor_pir],pirstr);
 			taskEXIT_CRITICAL();
 		/*	
 			taskENTER_CRITICAL();
@@ -320,9 +327,6 @@ void AppTask(char upir[],char utemp[],char ulight[])
 #else
 void AppTask()
 {	
-	char pirstr[4];
-	char tempstr[10];
-	char lightstr[10];
 	volatile BYTE TAG_ID,RSSI_VAL,i;
 	int c;
 	char buf[20];//manoj

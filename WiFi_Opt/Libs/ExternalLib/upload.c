@@ -143,7 +143,7 @@ int makeJson(char *buff, enum sensor_index index)
 	case sensor_pir:
 		vTaskSuspendAll();
 		strcpy(sreadings,pirdata);
-    memset(pirdata, '\0',sizeof(pirdata));
+		memset(pirdata, '\0',sizeof(pirdata));
 		xTaskResumeAll();
 		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';

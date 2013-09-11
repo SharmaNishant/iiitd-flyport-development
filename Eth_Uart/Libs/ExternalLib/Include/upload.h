@@ -12,7 +12,7 @@ enum sensor_index {
 
 #ifdef uart 
 void UpTask();
-void AppTask(char upir[],char utemp[],char ulight[])
+void AppTask(int upir,float utemp,float ulight);
 #else
 void AppTask();
 #endif 

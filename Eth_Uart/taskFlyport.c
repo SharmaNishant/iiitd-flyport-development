@@ -100,7 +100,7 @@ void FlyportTask()
 			taskEXIT_CRITICAL();
 			UARTWrite(1,"Calling AppTask");
 			if(profile.AppEnable)
-				AppTask(*pirstr,*tempstr,*luxstr);
+				AppTask(pirstr,tempstr,luxstr);
 		}	
 	}
 }
