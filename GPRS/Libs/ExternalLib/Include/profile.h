@@ -2,7 +2,7 @@
 
 //default applicaton values
 #define DEFAULT_SPERIOD		5
-#define DEFAULT_PPERIOD		900
+#define DEFAULT_PPERIOD		150
 #define DEFAULT_APIKEY		"3773bd8cf9594ca7a2a6c0074f73ace7"
 #define DEFAULT_DEVICENAME	"Node-RJ"
 #define DEFAULT_LOCATION	"RJ-Home"

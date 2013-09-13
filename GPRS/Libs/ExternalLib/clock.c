@@ -93,7 +93,7 @@ void ClockInit() {
 		else 	currentState=0;
 	}	
 	
-	//char Buff[] = "adaDate: Sat, 20 Jul 2013 15:19:17 GMT\r\n";			// example buff for purpose of debugging
+	//char Buff[] = "adaDate: Thu, 08 Aug 2013 18:39:09 GMT\r\n";			// example buff for purpose of debugging
 	
 	// Retrieving Date from Buff
 	char *ptr = strstr(Buff, "Date:");
@@ -105,15 +105,13 @@ void ClockInit() {
 		UARTWrite(1, "Could not get Current Time\r\n");
 	}
 	else {
-		
-		//UARTWrite(1, "Got Date String\r\n");
 		int loc = ptr - Buff;
 		
 		char date[40];
 		
 		int i=0;
 		while(Buff[loc] != '\r') {
-			/*char str[10];
+			/*char str[10];					// for debugging purpose
 			sprintf(str, "%c,%d\r\n", Buff[loc], Buff[loc]);
 			UARTWrite(1, str);*/
 			if(Buff[loc] == ':') {
@@ -130,20 +128,81 @@ void ClockInit() {
 		
 		UARTWrite(1, date);
 		
-		sscanf(date, "Date  %3s %2i %3s %4i %2i %2i %2i GMT", wday, &mday, month, &year, &hr, &min, &sec);		
+		//int ret = 			// for debugging purpose
+		sscanf(date, "Date  %3s %2d %3s %4d %2d %2d %2d GMT", wday, &mday, month, &year, &hr, &min, &sec);		
+				
+		/*char tmp[100];		// for debugging purpose
+		
+		sprintf(tmp, "\r\nret: %d, %s, %d-%s-%d %d:%d:%d\r\n", ret, wday, mday, month, year, hr, min, sec);
+		
+		UARTWrite(1, tmp);*/
 	}
 	
 	// Setting the RTCC
 	struct tm mytime;
- 
+	
+	int wdayINT = getDAY(wday);		//get int value for Day of Week
+	int monthINT = getMONTH(month);	 //get int value for Month of Year		
+	
+	// Adding Offset to GMT time of 5hr 30min i.e for IST
+	{		
+		min = min + 30;		// Add minute offset
+		
+		if(min > 59) {
+			min = min - 60;
+			hr = hr + 1;
+		}
+		
+		hr = hr + 5;		// Add hour offset
+		
+		if(hr > 23) {
+			hr = hr - 24;
+			mday = mday + 1;
+			wdayINT = wdayINT + 1;
+		}
+		
+		int numberDays;
+		switch(monthINT) {
+			case 0:	case 2:	case 4:	case 6:	case 7:	case 9:	case 11:	
+				numberDays = 31;
+				break;
+			
+			case 3:	case 5:	case 8:	case 10:
+				numberDays = 30;
+				break;
+				
+			case 1:
+				if(year%4 == 0) {
+					numberDays = 29;
+				}
+				else {
+					numberDays = 28;
+				}
+				break;
+		}
+		
+		if(mday > numberDays) {
+			mday = mday - numberDays;
+			monthINT = monthINT + 1;
+		}
+		
+		if(wdayINT > 6)
+			wdayINT = wdayINT - 6;
+		
+		if(monthINT > 11) {
+			monthINT = monthINT - 11;
+			year = year + 1;
+		}
+	}
+	
 	//initialization of mytime
 	mytime.tm_hour = hr;
 	mytime.tm_min = min;
 	mytime.tm_sec = sec;
 	mytime.tm_mday = mday;
-	mytime.tm_mon = getMONTH(month);
+	mytime.tm_mon = monthINT;
 	mytime.tm_year = year-1900;
-	mytime.tm_wday = getDAY(wday);
+	mytime.tm_wday = wdayINT;
 
 	RTCCSet(&mytime);
 	

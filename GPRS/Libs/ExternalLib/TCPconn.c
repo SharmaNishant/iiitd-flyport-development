@@ -290,7 +290,7 @@ int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 							vTaskDelay(50);
 						}
 						else
-							currentState = 2;
+							return 0;
 					}
 					break;
 					
@@ -327,7 +327,7 @@ int TCPRecieve(TCP_SOCKET *sockTcp, char inBuff[]) {
 					break;
 		}
 	}
-	return 0;
+	return -1;
 }
 
 // Recieves data from TCP connection in Low Level Mode, noted by the TCP_SOCKET

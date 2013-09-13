@@ -11,6 +11,9 @@
 #include "TCPconn.h"
 #include "GSM_Events.h"
 
+// this should be > (No. of Readings * 2) + 5 for SENSORACT
+# define READINGS_BUFFER 150
+
 // Size of JSON Object
 #define size 23
 
@@ -21,14 +24,11 @@ int PSEUDO;
 
 int sent[sensor_END];
 
-char sensdata[sensor_END][600];
+char sensdata[sensor_END][READINGS_BUFFER];
 
 int AppTaskStart = 0;
 int alarmcount[sensor_END];
-
-// timestamp for each sensor (because it may differ)
-char sampletime[sensor_END][25];
-
+char tstamp[sensor_END][25];
 
 char sreadings[600];//JSon string to store sensor data
 
@@ -49,6 +49,8 @@ char channelname[20] = "channel1";
 char unit[20] = "";
 // data readings to be sent in json_object
 char version[] = "1.0.0";
+
+char lenPrint[25];
 
 // defines the JSON accepted by SensorAct
 char *json_object[] = {
@@ -85,7 +87,7 @@ int makeJson(char *buff, int index)
 			sreadings[strlen(sreadings)-1]='\0';
 			strcpy(unit, "none");
 			strcpy(sensorname, "PIRSensor");
-			strcpy(timestamp, sampletime[sensor_pir]);
+			strcpy(timestamp, tstamp[sensor_pir]);
 			for(i=0; i<size; ++i) 
 			{
 				strcat(buff, json_object[i]);
@@ -101,7 +103,7 @@ int makeJson(char *buff, int index)
 			sreadings[strlen(sreadings)-1]='\0';
 			strcpy(unit, "none");
 			strcpy(sensorname, "PseudoSensor");
-			strcpy(timestamp, sampletime[sensor_pseudo]);
+			strcpy(timestamp, tstamp[sensor_pseudo]);
 			for(i=0; i<size; ++i) 
 			{
 				strcat(buff, json_object[i]);
@@ -131,7 +133,7 @@ char post_header[] =
 char pirstr[4];
 char pseudostr[4];
 
-void UpdateTimestamp(i) {
+void UpdateTimestamp(int i) {
 	struct tm ts;
 	
 	time_t epoch_time;
@@ -140,8 +142,8 @@ void UpdateTimestamp(i) {
 	
 	epoch_time = mktime(&ts);
 	
-	sprintf(sampletime[i],"%lu",epoch_time);
-	UARTWrite(1, sampletime[i]);
+	sprintf(tstamp[i],"%lu",epoch_time);
+	UARTWrite(1, tstamp[i]);
 	UARTWrite(1, "\r\n");
 }
 
@@ -169,7 +171,9 @@ void SampleTask() {
 			if(alarmcount[sensor_pir] % profile.SamplingPeriod == 0) {//Assumption: Sampling period is integer
 				UARTWrite(1, "PIR : ");
 				taskENTER_CRITICAL();			
-				PIR = PIRRead();			// get PIR data
+				//PIR = PIRRead();			// get PIR data
+				if(alarmcount[sensor_pir] % 2 == 0)	PIR = 1;
+				else	PIR = 0;
 				sprintf(pirstr,"%d,",PIR);	//Copy PIR data in to PIR data string
 				taskEXIT_CRITICAL();	
 				
@@ -182,10 +186,13 @@ void SampleTask() {
 				UARTWrite(1, asctime(&mytime));
 			}
 			//If the buffer of data gets filled, clear the buffer
-			if(strlen(sensdata[sensor_pir])>=590) {
+			if(strlen(sensdata[sensor_pir])>=READINGS_BUFFER-5) {
 				UARTWrite(1, "\r\nPIR: Clearing Data\r\n");
-				sensdata[sensor_pir][0] = '\0';
-			}	
+				//sensdata[sensor_pir][0] = '\0';
+				
+				memset(sensdata[sensor_pir], '\0', sizeof(sensdata[sensor_pir]));
+			}					
+			
 			alarmcount[sensor_pir]++;
 		}
 		{
@@ -197,7 +204,12 @@ void SampleTask() {
 			if(alarmcount[sensor_pseudo] % profile.SamplingPeriod == 0) {//Assumption: Sampling period is integer
 				UARTWrite(1, "PSEUDO : ");
 				taskENTER_CRITICAL();
-				PSEUDO = pseudoRead();			// get PSEUDO data
+				
+				//PSEUDO = pseudoRead();			// get PSEUDO data
+				
+				if(alarmcount[sensor_pseudo] % 2 == 0)	PSEUDO = 1;
+				else	PSEUDO = 0;
+				
 				sprintf(pseudostr,"%d,",PSEUDO);	//Copy PSEUDO data in to PSEUDO data string
 				taskEXIT_CRITICAL();
 				
@@ -208,14 +220,23 @@ void SampleTask() {
 				RTCCGet(&mytime);
 				UARTWrite(1, "Sampling Data - ");
 				UARTWrite(1, asctime(&mytime));
+				
+				sprintf(lenPrint, "strlen(PIR):%d\t", strlen(sensdata[sensor_pir]));
+				UARTWrite(1, lenPrint);
+				
+				sprintf(lenPrint, "strlen(PSEUDO):%d\r\n", strlen(sensdata[sensor_pseudo]));
+				UARTWrite(1, lenPrint);
 			}
 			//If the buffer of data gets filled, clear the buffer
-			if(strlen(sensdata[sensor_pseudo])>=590) {
+			if(strlen(sensdata[sensor_pseudo])>=READINGS_BUFFER-5) {
 				UARTWrite(1, "\r\nPSEUDO: Clearing Data\r\n");
-				sensdata[sensor_pseudo][0] = '\0';
-			}																
+				//sensdata[sensor_pseudo][0] = '\0';
+				
+				memset(sensdata[sensor_pseudo], '\0', sizeof(sensdata[sensor_pseudo]));
+			}																					
 			alarmcount[sensor_pseudo]++;	
 		}
+			
 	}
 }
 
@@ -297,10 +318,17 @@ void AppTask()
 		int i;
 		if(alarmcount[0] % profile.PublishPeriod == 0 || cont)
 		{
+			cont = TRUE;
 			UARTWrite(1, "ALARM\r\n");
 			
 			TCP_SOCKET sendSOCK;		// creating socket
 			sendSOCK.number = INVALID_SOCKET;
+			
+			sprintf(lenPrint, "POST_strlen(PIR):%d\r\n", strlen(sensdata[sensor_pir]));
+			UARTWrite(1, lenPrint);
+			
+			sprintf(lenPrint, "POST_strlen(PSEUDO):%d\r\n", strlen(sensdata[sensor_pseudo]));
+			UARTWrite(1, lenPrint);
 			
 			int ret = TCPConnect(&sendSOCK, profile.ServerIP, profile.ServerPort);		// connecting to server			
 			
@@ -348,12 +376,18 @@ void AppTask()
 						for(j=sent[i] ; j<strlen(sensdata[i]) ; j++) {
 							sensdata[i][k++] = sensdata[i][j];
 						}
-						sensdata[i][k] = '\0';
+						//sensdata[i][k] = '\0';
+						
+						char *ptr = &sensdata[i][k];
+						memset(ptr, '\0', strlen(sensdata[i])-k);
+						
 						UARTWrite(1, "\r\nData Cleared");
 						alarmcount[i] = 0;
 						// sent data cleared, start sampling
 						AppTaskStart = 1;
 						number_Fail = 0;
+						
+						
 						
 						cont = FALSE;
 					}
@@ -366,8 +400,7 @@ void AppTask()
 			}
 			
 			// closing the socket
-			TCPClose(&sendSOCK);
+			TCPClose(&sendSOCK);						
 		}
    }
 }
-
