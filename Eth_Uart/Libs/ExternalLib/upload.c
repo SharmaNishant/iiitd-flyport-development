@@ -135,6 +135,7 @@ int makeJson(char *buff, enum sensor_index index)
 	int i;
 
 	sprintf(samplingperiod, "%d", profile.SamplingPeriod);
+	UARTWrite(1,"having a great time");
 
 	// clear the content buffer
 	buff[0] = '\0';
@@ -219,14 +220,14 @@ volatile int alarmcount;
 
 //Thread to handle JSON post
 xTaskHandle hPostTask;
-/*
+
 //PIR Sensor value
 int PIR;
 //Temperature Sensor value
 double Temp;
 //Light Sensor value
 double Light;
-*/
+
 //Request Buffer
 char RequestBuffer[1024];
 
@@ -254,7 +255,7 @@ void UpTask()
 }
 
 
-void AppTask(int upir,float utemp,float ulight)
+void AppTask(int upir,int utemp,int ulight)
 {	
 	/*char pirstr[4];
 	char tempstr[10];
@@ -290,10 +291,10 @@ void AppTask(int upir,float utemp,float ulight)
 			taskENTER_CRITICAL();
 			//PIR = PIRRead();			// get PIR data
 			sprintf(pirstr,"%d,",upir);	//Copy PIR data in to PIR data string
-			taskEXIT_CRITICAL();*/
-			
-			UARTWrite(1,"values adding\r\n");	
-			
+			taskEXIT_CRITICAL();
+		char val[4];
+		sprintf(val,"\n%d\n\n",ulight);
+		UARTWrite(1,val);
 			taskENTER_CRITICAL(); //Put in critical section such that it is not interrupted by the post task
 			strcat(sensdata[sensor_temperature],tempstr);
 			taskEXIT_CRITICAL();
@@ -312,21 +313,21 @@ void AppTask(int upir,float utemp,float ulight)
 			taskEXIT_CRITICAL();
 		*/
 		}
-		UARTWrite(1,"values added\r\n");
 		alarmcount++;
-		/*if(alarmcount % profile.PublishPeriod == 0)
+		
+		if(alarmcount % profile.PublishPeriod == 0)
 		{
-			UARTWrite(1,"alarm upload\r\n");
 			alarmupload = 1;
 			alarmcount = 0;
-		}*/
-		UARTWrite(1,"AppTask ended\r\n");
+			UARTWrite(1,"alarm\n");
+		}
    }
    return;
 }
 #else
 void AppTask()
 {	
+	
 	volatile BYTE TAG_ID,RSSI_VAL,i;
 	int c;
 	char buf[20];//manoj

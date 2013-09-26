@@ -1,3 +1,4 @@
+#import <uart.h>
 
 #define MAX_RETRIES 5
 
@@ -12,7 +13,8 @@ enum sensor_index {
 
 #ifdef uart 
 void UpTask();
-void AppTask(int upir,float utemp,float ulight);
+void AppTask(int upir,int utemp,int ulight);
 #else
+//void AppTask(int upir,float utemp,float ulight);
 void AppTask();
 #endif 

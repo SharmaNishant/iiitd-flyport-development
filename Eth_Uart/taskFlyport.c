@@ -15,7 +15,10 @@ int msglen;
 int i,k;
 char inmsg[500];
 char *fetch_temp,*fetch_lux,*fetch_pir;
-char luxstr[10],tempstr[10],pirstr[10];
+char luxstr[10],temps[10],pirs[10];
+int pir;
+float tempr;
+float light;
 
 void UART2_init()
 	{
@@ -34,6 +37,8 @@ void FlyportTask()
 	//	Flyport waiting for the cable connection
 	while (!MACLinked);
 	vTaskDelay(100);
+	ProfileInit();
+	ETHCustomLoad();
 	UARTWrite(1,"Flyport ethernet connected to the cable... hello world!\r\n");
 		UART2_init();
 		UARTWrite(1,"UART INIT 2 Done\r\n");
@@ -72,7 +77,7 @@ void FlyportTask()
 					pir_flag=0;
 				if(temp_flag)
 				{
-					tempstr[i]=fetch_temp[i+1];
+					temps[i]=fetch_temp[i+1];
 				}
 				if(lux_flag)
 				{
@@ -80,27 +85,32 @@ void FlyportTask()
 				}
 				if(pir_flag)
 				{
-					pirstr[i] =fetch_pir[i+4];
+					pirs[i] =fetch_pir[i+4];
 					//k=i;
 				}
 			}		
 			//pirstr[k+1]='\0';
 			//UARTWrite(1,pirstr);
 			UARTWrite(1,"\ntmp:");		
-			UARTWrite(1,tempstr);		
+			UARTWrite(1,temps);		
 			UARTWrite(1,"\nlux:");
 			UARTWrite(1,luxstr);		
 			UARTWrite(1,"\nPir:");
-			UARTWrite(1,pirstr);		
+			UARTWrite(1,pirs);		
 			UARTWrite(1,"\r\n");
-			memset(tempstr,'\0',sizeof(tempstr));
+			memset(temps,'\0',sizeof(temps));
 			memset(luxstr,'\0',sizeof(luxstr));
-			memset(pirstr,'\0',sizeof(pirstr));
+			memset(pirs,'\0',sizeof(pirs));
 			memset(inmsg,'\0',sizeof(inmsg));
+			pir=atoi(pirs);
+			tempr=atoi(temps);
+			light=atoi(luxstr);
+			char val[4];
+			sprintf(val,"%d",pir);
+			UARTWrite(1,val);
 			taskEXIT_CRITICAL();
-			UARTWrite(1,"Calling AppTask");
-			if(profile.AppEnable)
-				AppTask(pirstr,tempstr,luxstr);
+			//if(profile.AppEnable)
+				AppTask(pir,tempr,light);
 		}	
 	}
 }
@@ -113,18 +123,13 @@ char* getlight()
 
 char* gettemp()
 {
-	return tempstr;
+	return temps;
 }
+
 char* getpir()
 {
-	return pirstr;	
+	return pirs;	
 }
-
-
-
-
-
-
 
 #else
 int Random_Delay()//random delay function 
@@ -159,7 +164,7 @@ void FlyportTask()
 	
 	UARTWrite(1,"\r\nEntering in infinite loop...\r\n");
 	
-	if(profile.AppEnable)
+	//if(profile.AppEnable)
 	{
 	AppTask();
 	}
