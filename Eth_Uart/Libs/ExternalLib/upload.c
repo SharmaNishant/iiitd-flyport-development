@@ -255,29 +255,17 @@ void UpTask()
 }
 
 
-void AppTask(int upir,int utemp,int ulight)
+//void AppTask(char upir[10],char utemp[10],char ulight[10])
+void AppTask(char* upir,char* utemp,char* ulight)
 {	
-	/*char pirstr[4];
-	char tempstr[10];
-	char lightstr[10];*/
-	
-	//alarmflag = 0;
-	//alarmcount = 0;
-//	while(1)
-	{       
-		//while(alarmflag != 1) vTaskDelay(1);
-		//alarmflag=0;
-		
 		if(alarmcount == 0)
 		{
 			UpdateTimestamp();
 		}
 		
-		
-			
 		//if(alarmread == 1)
 		{	alarmread = 0;
-			
+			/*
 			taskENTER_CRITICAL();//Put string copy in seperate tasks to avoid intermixing of sensor param's during strcpy
 			//Temp = DS1820Read();		// get Temperature data
 			sprintf(tempstr,"%0.1f,",utemp);//Copy Temp data in to Temp data string
@@ -291,20 +279,19 @@ void AppTask(int upir,int utemp,int ulight)
 			taskENTER_CRITICAL();
 			//PIR = PIRRead();			// get PIR data
 			sprintf(pirstr,"%d,",upir);	//Copy PIR data in to PIR data string
-			taskEXIT_CRITICAL();
-		char val[4];
-		sprintf(val,"\n%d\n\n",ulight);
-		UARTWrite(1,val);
+			taskEXIT_CRITICAL();*/
+		UARTWrite(1,ulight);
+		UARTWrite(1," -> light value\n");
 			taskENTER_CRITICAL(); //Put in critical section such that it is not interrupted by the post task
-			strcat(sensdata[sensor_temperature],tempstr);
+			strcat(sensdata[sensor_temperature],utemp);
 			taskEXIT_CRITICAL();
 			
 			taskENTER_CRITICAL();
-			strcat(sensdata[sensor_light],lightstr);
+			strcat(sensdata[sensor_light],ulight);
 			taskEXIT_CRITICAL();
 			
 			taskENTER_CRITICAL();
-			strcat(sensdata[sensor_pir],pirstr);
+			strcat(sensdata[sensor_pir],upir);
 			taskEXIT_CRITICAL();
 		/*	
 			taskENTER_CRITICAL();
@@ -322,8 +309,6 @@ void AppTask(int upir,int utemp,int ulight)
 			UARTWrite(1,"alarm\n");
 		}
    }
-   return;
-}
 #else
 void AppTask()
 {	
@@ -508,6 +493,7 @@ void PostTask()
 				TCPWrite(Socket, RequestBuffer, length);
 				//delay
 				vTaskDelay(20);//200
+				UARTWrite(1,bufHTTPheader);
 				//Disconnect
 				UARTWrite(1,"Disconnecting...\r\n"); //After sending every sensor data, the connection is disconnected
 				TCPClientClose ( Socket );

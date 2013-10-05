@@ -16,9 +16,6 @@ int i,k;
 char inmsg[500];
 char *fetch_temp,*fetch_lux,*fetch_pir;
 char luxstr[10],temps[10],pirs[10];
-int pir;
-float tempr;
-float light;
 
 void UART2_init()
 	{
@@ -34,11 +31,14 @@ void FlyportTask()
 	int temp_flag=0;
 	int lux_flag=0;
 	int pir_flag=0;
-	//	Flyport waiting for the cable connection
-	while (!MACLinked);
 	vTaskDelay(100);
 	ProfileInit();
 	ETHCustomLoad();
+	ETHRestart(ETH_CUSTOM);
+	//	Flyport waiting for the cable connection
+	
+	while (!MACLinked);
+
 	UARTWrite(1,"Flyport ethernet connected to the cable... hello world!\r\n");
 		UART2_init();
 		UARTWrite(1,"UART INIT 2 Done\r\n");
@@ -54,6 +54,12 @@ void FlyportTask()
 		if(msglen > 0)
 		{
 			taskENTER_CRITICAL();	
+			memset(temps,'\0',sizeof(temps));
+			memset(luxstr,'\0',sizeof(luxstr));
+			memset(pirs,'\0',sizeof(pirs));
+			
+			
+			
 			vTaskDelay(20);
 			msglen = UARTBufferSize(2);
 			UARTRead(2, inmsg, msglen);
@@ -71,7 +77,7 @@ void FlyportTask()
 				
 				if(fetch_temp[i+1]==',')
 					temp_flag=0;
-				if(fetch_lux[i+9]=='.')
+				if(fetch_lux[i+9]=='|')
 					lux_flag=0;
 				if(fetch_pir[i+4]=='\n')
 					pir_flag=0;
@@ -98,19 +104,10 @@ void FlyportTask()
 			UARTWrite(1,"\nPir:");
 			UARTWrite(1,pirs);		
 			UARTWrite(1,"\r\n");
-			memset(temps,'\0',sizeof(temps));
-			memset(luxstr,'\0',sizeof(luxstr));
-			memset(pirs,'\0',sizeof(pirs));
 			memset(inmsg,'\0',sizeof(inmsg));
-			pir=atoi(pirs);
-			tempr=atoi(temps);
-			light=atoi(luxstr);
-			char val[4];
-			sprintf(val,"%d",pir);
-			UARTWrite(1,val);
 			taskEXIT_CRITICAL();
-			//if(profile.AppEnable)
-				AppTask(pir,tempr,light);
+			if(profile.AppEnable)
+				AppTask(pirs,temps,luxstr);
 		}	
 	}
 }
@@ -164,7 +161,7 @@ void FlyportTask()
 	
 	UARTWrite(1,"\r\nEntering in infinite loop...\r\n");
 	
-	//if(profile.AppEnable)
+	if(profile.AppEnable)
 	{
 	AppTask();
 	}

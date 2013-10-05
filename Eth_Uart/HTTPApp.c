@@ -246,6 +246,7 @@ void HTTPPrint_DNS2()
 void HTTPPrint_PIR()
 {
 	/*TCPPut(sktHTTP,(BYTE*)getpir());*/
+	TCPPutString(sktHTTP, (BYTE*)"Uart");
 	return;
 }
 
@@ -254,7 +255,8 @@ void HTTPPrint_TEMP()
 	/*char tmp[10];
 	sprintf(tmp, "%lf", DS1820Read());
 	TCPPutString(sktHTTP, (BYTE*)tmp);*/
-	TCPPutString(sktHTTP, (BYTE*)gettemp());
+	//TCPPutString(sktHTTP, (BYTE*)gettemp());
+	TCPPutString(sktHTTP, (BYTE*)"Uart");
 	return;
 }
 
@@ -263,7 +265,8 @@ void HTTPPrint_LIGHT()
 	/*char tmp[10];
 	sprintf(tmp, "%f", (double)APDSRead());
 	TCPPutString(sktHTTP, (BYTE*)tmp);*/
-	TCPPutString(sktHTTP, (BYTE*)getlight());
+	//TCPPutString(sktHTTP, (BYTE*)getlight());
+	TCPPutString(sktHTTP, (BYTE*)"Uart");
 	return;
 }
 #else
