@@ -1,1 +1,1 @@
-Success
+Device Parameter Successfully Saved

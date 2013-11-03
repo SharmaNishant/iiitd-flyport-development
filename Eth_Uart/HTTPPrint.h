@@ -35,7 +35,9 @@ void HTTPPrint_TEMP(void);
 void HTTPPrint_PIR(void);
 void HTTPPrint_DEVICENAME(void);
 void HTTPPrint_LOCATION(void);
-//void HTTPPrint_SSID(void);
+void HTTPPrint_SNTP(void);
+void HTTPPrint_ENABLEAPP(void);
+void HTTPPrint_DHCP(void);
 
 void HTTPPrint(DWORD callbackID)
 {
@@ -89,9 +91,15 @@ void HTTPPrint(DWORD callbackID)
         case 0x0000001e:
 			HTTPPrint_LOCATION();
 			break;
-        /*case 0x0000001f:
-			HTTPPrint_SSID();
-			break;*/
+        case 0x00000020:
+			HTTPPrint_SNTP();
+			break;
+        case 0x00000021:
+			HTTPPrint_ENABLEAPP();
+			break;
+        case 0x00000022:
+			HTTPPrint_DHCP();
+			break;
 		default:
 			// Output notification for undefined values
 			TCPPutROMArray(sktHTTP, (ROM BYTE*)"!DEF", 4);

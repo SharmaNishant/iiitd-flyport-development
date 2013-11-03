@@ -242,6 +242,29 @@ void HTTPPrint_DNS2()
 	return;
 }*/
 
+void HTTPPrint_ENABLEAPP()
+{
+	char val[4];
+	sprintf(val,"%d",profile.AppEnable);
+	TCPPutString(sktHTTP, (BYTE*)val);
+	return;
+}
+
+void HTTPPrint_SNTP()
+{
+	char val[4];
+	sprintf(val,"%d",profile.SNTPEnable);
+	TCPPutString(sktHTTP, (BYTE*)val);
+	return;
+}
+void HTTPPrint_DHCP()
+{
+	char val[4];
+	sprintf(val,"%d",profile.DHCPEnabled);
+	TCPPutString(sktHTTP, (BYTE*)val);
+	return;
+}
+
 #ifdef uart
 void HTTPPrint_PIR()
 {
