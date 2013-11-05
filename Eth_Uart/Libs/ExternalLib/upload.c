@@ -284,14 +284,13 @@ void AppTask(char* upir,char* utemp,char* ulight)
 		UARTWrite(1," -> light value\n");
 			taskENTER_CRITICAL(); //Put in critical section such that it is not interrupted by the post task
 			strcat(sensdata[sensor_temperature],utemp);
-			taskEXIT_CRITICAL();
+			strcat(sensdata[sensor_temperature],",");
 			
-			taskENTER_CRITICAL();
 			strcat(sensdata[sensor_light],ulight);
-			taskEXIT_CRITICAL();
+			strcat(sensdata[sensor_light],",");
 			
-			taskENTER_CRITICAL();
 			strcat(sensdata[sensor_pir],upir);
+			strcat(sensdata[sensor_pir],",");
 			taskEXIT_CRITICAL();
 		/*	
 			taskENTER_CRITICAL();
