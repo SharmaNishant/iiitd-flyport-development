@@ -160,8 +160,8 @@
 #define MY_DEFAULT_MAC_BYTE2            (0x04)	// 00-04-A3-00-00-00 if using
 #define MY_DEFAULT_MAC_BYTE3            (0xA3)	// an ENCX24J600 or MRF24WB0M
 #define MY_DEFAULT_MAC_BYTE4            (0x00)	// and wish to use the internal
-#define MY_DEFAULT_MAC_BYTE5            (0x44)	// factory programmed MAC
-#define MY_DEFAULT_MAC_BYTE6            (0x99)	// address instead.
+#define MY_DEFAULT_MAC_BYTE5            (0x01)	// factory programmed MAC
+#define MY_DEFAULT_MAC_BYTE6            (0x05)	// address instead.
 
 
 #define MY_DEFAULT_IP_ADDR_BYTE1        (192ul)

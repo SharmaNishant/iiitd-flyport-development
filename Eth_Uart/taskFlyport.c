@@ -53,6 +53,7 @@ void FlyportTask()
 		msglen = UARTBufferSize(2);
 		if(msglen > 0)
 		{
+			UARTWrite(1,"rec\n");
 			taskENTER_CRITICAL();	
 			memset(temps,'\0',sizeof(temps));
 			memset(luxstr,'\0',sizeof(luxstr));

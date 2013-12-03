@@ -127,7 +127,6 @@ int makeJson(char *buff, enum sensor_index index)
 		vTaskSuspendAll();	
 		strcpy(sreadings,tempdata);
 		memset(tempdata, '\0',sizeof(tempdata));
-		xTaskResumeAll();	
 		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
 		strcpy(unit, "celsius");
@@ -136,6 +135,7 @@ int makeJson(char *buff, enum sensor_index index)
 		{
 			strcat(buff, json_object[i]);
 		}
+		xTaskResumeAll();
 		// clear the readings in tempreadings so that new 10 readings can be taken
 		//sensdata[sensor_temperature][0] = '\0';
 		break;
@@ -144,7 +144,6 @@ int makeJson(char *buff, enum sensor_index index)
 		vTaskSuspendAll();
 		strcpy(sreadings,pirdata);
 		memset(pirdata, '\0',sizeof(pirdata));
-		xTaskResumeAll();
 		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
 		strcpy(unit, "none");
@@ -155,13 +154,13 @@ int makeJson(char *buff, enum sensor_index index)
 		}	
 		// clear the readings in pirreadings so that new 10 readings can be taken
 		//sensdata[sensor_pir][0] = '\0';
+		xTaskResumeAll();
 		break;
 		
 	case sensor_light:
 		vTaskSuspendAll();
 		strcpy(sreadings,lightdata);
 		memset(lightdata, '\0',sizeof(lightdata));
-		xTaskResumeAll();
 		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
 		strcpy(unit, "none");
@@ -172,6 +171,7 @@ int makeJson(char *buff, enum sensor_index index)
 		}	
 		// clear the readings in pirreadings so that new 10 readings can be taken
 		//sensdata[sensor_light][0] = '\0';
+		xTaskResumeAll();
 		break;
 	
 	/*case sensor_tag:
