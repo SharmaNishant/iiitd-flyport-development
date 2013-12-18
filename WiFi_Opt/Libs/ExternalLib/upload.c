@@ -31,7 +31,7 @@ int publish_check;
 
 static TCP_SOCKET Socket = INVALID_SOCKET;
 // Number of sensors connected to the Flyport
-//#define NUM_SENSORS 4
+#define NUM_SENSORS 4
 //Number of TAGS available in the vicinity
 //#define MAX_TAGS 6
 //#define RSSI_INDEX 40 // Can be reduced based upon data received per 10 sec into sensor data string
@@ -118,9 +118,9 @@ int makeJson(char *buff, enum sensor_index index)
 	sprintf(samplingperiod, "%d", profile.SamplingPeriod);
 	// clear the content buffer
 	//buff[0] = '\0';
-	//vTaskSuspendAll();
+	vTaskSuspendAll();
 	memset(buff, '\0', sizeof(buff));
-	//xTaskResumeAll();
+	xTaskResumeAll();
 	switch(index)
 	{
 	case sensor_temperature:

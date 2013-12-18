@@ -1,0 +1,225 @@
+   1               		.file	"ds18x20.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+  15               	.Ltext0:
+  16               	.global	DS1820Init
+  18               	DS1820Init:
+  19               	.LFB6:
+  20               	.LM1:
+  21               	/* prologue: function */
+  22               	/* frame size = 0 */
+  23               	/* epilogue start */
+  24               	.LM2:
+  25 0000 0895      		ret
+  26               	.LFE6:
+  28               	.global	DS1820Read
+  30               	DS1820Read:
+  31               	.LFB7:
+  32               	.LM3:
+  33 0002 AF92      		push r10
+  34 0004 BF92      		push r11
+  35 0006 CF92      		push r12
+  36 0008 DF92      		push r13
+  37 000a EF92      		push r14
+  38 000c FF92      		push r15
+  39 000e 0F93      		push r16
+  40 0010 1F93      		push r17
+  41 0012 DF93      		push r29
+  42 0014 CF93      		push r28
+  43 0016 CDB7      		in r28,__SP_L__
+  44 0018 DEB7      		in r29,__SP_H__
+  45 001a 2A97      		sbiw r28,10
+  46 001c 0FB6      		in __tmp_reg__,__SREG__
+  47 001e F894      		cli
+  48 0020 DEBF      		out __SP_H__,r29
+  49 0022 0FBE      		out __SREG__,__tmp_reg__
+  50 0024 CDBF      		out __SP_L__,r28
+  51               	/* prologue: function */
+  52               	/* frame size = 10 */
+  53               	.LM4:
+  54 0026 00D0      		rcall ow_reset
+  55               	.LM5:
+  56 0028 8CEC      		ldi r24,lo8(204)
+  57 002a 90E0      		ldi r25,hi8(204)
+  58 002c 00D0      		rcall ow_byte_wr
+  59               	.LM6:
+  60 002e 8EE4      		ldi r24,lo8(78)
+  61 0030 90E0      		ldi r25,hi8(78)
+  62 0032 00D0      		rcall ow_byte_wr
+  63               	.LM7:
+  64 0034 80E0      		ldi r24,lo8(0)
+  65 0036 90E0      		ldi r25,hi8(0)
+  66 0038 00D0      		rcall ow_byte_wr
+  67               	.LM8:
+  68 003a 80E0      		ldi r24,lo8(0)
+  69 003c 90E0      		ldi r25,hi8(0)
+  70 003e 00D0      		rcall ow_byte_wr
+  71               	.LM9:
+  72 0040 8FE7      		ldi r24,lo8(127)
+  73 0042 90E0      		ldi r25,hi8(127)
+  74 0044 00D0      		rcall ow_byte_wr
+  75               	.LBB36:
+  76               	.LBB37:
+  77               	.LBB38:
+  78               	.LBB39:
+  79               	.LM10:
+  80 0046 8AE1      		ldi r24,lo8(26)
+  81               	.LVL0:
+  82               	/* #APP */
+  83               	 ;  83 "c:/winavr-20100110/lib/gcc/../../avr/include/util/delay_basic.h" 1
+  84 0048 8A95      		1: dec r24
+  85 004a 01F4      		brne 1b
+  86               	 ;  0 "" 2
+  87               	/* #NOAPP */
+  88               	.LBE39:
+  89               	.LBE38:
+  90               	.LBE37:
+  91               	.LBE36:
+  92               	.LM11:
+  93 004c 00D0      		rcall ow_reset
+  94               	.LVL1:
+  95               	.LM12:
+  96 004e 8CEC      		ldi r24,lo8(204)
+  97 0050 90E0      		ldi r25,hi8(204)
+  98 0052 00D0      		rcall ow_byte_wr
+  99               	.LM13:
+ 100 0054 84E4      		ldi r24,lo8(68)
+ 101 0056 90E0      		ldi r25,hi8(68)
+ 102 0058 00D0      		rcall ow_byte_wr
+ 103               	.LBB40:
+ 104               	.LBB41:
+ 105               	.LBB42:
+ 106               	.LBB43:
+ 107               	.LBB44:
+ 108               	.LBB45:
+ 109               	.LM14:
+ 110 005a 8CED      		ldi r24,lo8(1500)
+ 111 005c 95E0      		ldi r25,hi8(1500)
+ 112               	.LVL2:
+ 113               	/* #APP */
+ 114               	 ;  105 "c:/winavr-20100110/lib/gcc/../../avr/include/util/delay_basic.h" 1
+ 115 005e 0197      		1: sbiw r24,1
+ 116 0060 01F4      		brne 1b
+ 117               	 ;  0 "" 2
+ 118               	/* #NOAPP */
+ 119               	.LBE45:
+ 120               	.LBE44:
+ 121               	.LBE43:
+ 122               	.LBE42:
+ 123               	.LBE41:
+ 124               	.LBE40:
+ 125               	.LM15:
+ 126 0062 00D0      		rcall ow_reset
+ 127               	.LVL3:
+ 128               	.LM16:
+ 129 0064 8CEC      		ldi r24,lo8(204)
+ 130 0066 90E0      		ldi r25,hi8(204)
+ 131 0068 00D0      		rcall ow_byte_wr
+ 132               	.LM17:
+ 133 006a 8EEB      		ldi r24,lo8(190)
+ 134 006c 90E0      		ldi r25,hi8(190)
+ 135 006e 00D0      		rcall ow_byte_wr
+ 136 0070 8E01      		movw r16,r28
+ 137 0072 0F5F      		subi r16,lo8(-(1))
+ 138 0074 1F4F      		sbci r17,hi8(-(1))
+ 139               	.LM18:
+ 140 0076 8AE0      		ldi r24,lo8(10)
+ 141 0078 E82E      		mov r14,r24
+ 142 007a F12C      		mov r15,__zero_reg__
+ 143 007c EC0E      		add r14,r28
+ 144 007e FD1E      		adc r15,r29
+ 145               	.L4:
+ 146 0080 00D0      		rcall ow_byte_rd
+ 147 0082 F801      		movw r30,r16
+ 148 0084 8193      		st Z+,r24
+ 149 0086 8F01      		movw r16,r30
+ 150 0088 EE15      		cp r30,r14
+ 151 008a FF05      		cpc r31,r15
+ 152 008c 01F4      		brne .L4
+ 153               	.LM19:
+ 154 008e E980      		ldd r14,Y+1
+ 155 0090 6A81      		ldd r22,Y+2
+ 156 0092 6770      		andi r22,lo8(7)
+ 157 0094 6295      		swap r22
+ 158 0096 607F      		andi r22,lo8(-16)
+ 159 0098 70E0      		ldi r23,lo8(0)
+ 160 009a 80E0      		ldi r24,lo8(0)
+ 161 009c 90E0      		ldi r25,hi8(0)
+ 162 009e 00D0      		rcall __floatunsisf
+ 163 00a0 5B01      		movw r10,r22
+ 164 00a2 6C01      		movw r12,r24
+ 165 00a4 6E2D      		mov r22,r14
+ 166 00a6 6295      		swap r22
+ 167 00a8 6F70      		andi r22,lo8(15)
+ 168 00aa 70E0      		ldi r23,lo8(0)
+ 169 00ac 80E0      		ldi r24,lo8(0)
+ 170 00ae 90E0      		ldi r25,hi8(0)
+ 171 00b0 00D0      		rcall __floatunsisf
+ 172 00b2 9B01      		movw r18,r22
+ 173 00b4 AC01      		movw r20,r24
+ 174 00b6 C601      		movw r24,r12
+ 175 00b8 B501      		movw r22,r10
+ 176 00ba 00D0      		rcall __addsf3
+ 177 00bc 5B01      		movw r10,r22
+ 178 00be 6C01      		movw r12,r24
+ 179 00c0 FFE0      		ldi r31,lo8(15)
+ 180 00c2 EF22      		and r14,r31
+ 181 00c4 FF24      		clr r15
+ 182 00c6 00E0      		ldi r16,lo8(0)
+ 183 00c8 10E0      		ldi r17,hi8(0)
+ 184 00ca C801      		movw r24,r16
+ 185 00cc B701      		movw r22,r14
+ 186 00ce 00D0      		rcall __floatunsisf
+ 187 00d0 20E0      		ldi r18,lo8(0x3d800000)
+ 188 00d2 30E0      		ldi r19,hi8(0x3d800000)
+ 189 00d4 40E8      		ldi r20,hlo8(0x3d800000)
+ 190 00d6 5DE3      		ldi r21,hhi8(0x3d800000)
+ 191 00d8 00D0      		rcall __mulsf3
+ 192 00da 9B01      		movw r18,r22
+ 193 00dc AC01      		movw r20,r24
+ 194 00de C601      		movw r24,r12
+ 195 00e0 B501      		movw r22,r10
+ 196 00e2 00D0      		rcall __addsf3
+ 197               	/* epilogue start */
+ 198               	.LM20:
+ 199 00e4 2A96      		adiw r28,10
+ 200 00e6 0FB6      		in __tmp_reg__,__SREG__
+ 201 00e8 F894      		cli
+ 202 00ea DEBF      		out __SP_H__,r29
+ 203 00ec 0FBE      		out __SREG__,__tmp_reg__
+ 204 00ee CDBF      		out __SP_L__,r28
+ 205 00f0 CF91      		pop r28
+ 206 00f2 DF91      		pop r29
+ 207 00f4 1F91      		pop r17
+ 208 00f6 0F91      		pop r16
+ 209 00f8 FF90      		pop r15
+ 210 00fa EF90      		pop r14
+ 211 00fc DF90      		pop r13
+ 212 00fe CF90      		pop r12
+ 213 0100 BF90      		pop r11
+ 214 0102 AF90      		pop r10
+ 215 0104 0895      		ret
+ 216               	.LFE7:
+ 250               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 ds18x20.c
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:2      *ABS*:0000003f __SREG__
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:5      *ABS*:00000034 __CCP__
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:18     .text:00000000 DS1820Init
+C:\Users\Nishant\AppData\Local\Temp/ccpvOaz0.s:30     .text:00000002 DS1820Read
+
+UNDEFINED SYMBOLS
+ow_reset
+ow_byte_wr
+ow_byte_rd
+__floatunsisf
+__addsf3
+__mulsf3

@@ -26,8 +26,9 @@ MRF24J40_IFREG flags;
 	char pirstr[4];
 	char tempstr[10];
 	char lightstr[10];
-
-
+	char upir[10];
+	char ulight[10];
+	char utemp[10];
 
 // Number of sensors connected to the Flyport
 #define NUM_SENSORS 3//4 if Tag is included 
@@ -135,7 +136,7 @@ int makeJson(char *buff, enum sensor_index index)
 	int i;
 
 	sprintf(samplingperiod, "%d", profile.SamplingPeriod);
-	UARTWrite(1,"having a great time");
+	//UARTWrite(1,"having a great time");
 
 	// clear the content buffer
 	buff[0] = '\0';
@@ -145,7 +146,8 @@ int makeJson(char *buff, enum sensor_index index)
 	case sensor_temperature:
 		taskENTER_CRITICAL();
 		strcpy(sreadings,sensdata[sensor_temperature]);
-		taskEXIT_CRITICAL();
+		memset(sensdata[sensor_temperature], '\0',sizeof(sensdata[sensor_temperature]));
+		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
 		strcpy(unit, "celsius");
 		strcpy(sensorname, "TemperatureSensor");
@@ -154,13 +156,15 @@ int makeJson(char *buff, enum sensor_index index)
 			strcat(buff, json_object[i]);
 		}
 		// clear the readings in tempreadings so that new 10 readings can be taken
-		sensdata[sensor_temperature][0] = '\0';
+		//sensdata[sensor_temperature][0] = '\0';
+		taskEXIT_CRITICAL();
 		break;
 
 	case sensor_pir:
 		taskENTER_CRITICAL();
 		strcpy(sreadings,sensdata[sensor_pir]);
-		taskEXIT_CRITICAL();
+		memset(sensdata[sensor_pir], '\0',sizeof(sensdata[sensor_pir]));
+		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
 		strcpy(unit, "none");
 		strcpy(sensorname, "PIRSensor");
@@ -169,13 +173,15 @@ int makeJson(char *buff, enum sensor_index index)
 			strcat(buff, json_object[i]);
 		}	
 		// clear the readings in pirreadings so that new 10 readings can be taken
-		sensdata[sensor_pir][0] = '\0';
+		//sensdata[sensor_pir][0] = '\0';
+		taskEXIT_CRITICAL();
 		break;
 		
 	case sensor_light:
 		taskENTER_CRITICAL();
 		strcpy(sreadings,sensdata[sensor_light]);
-		taskEXIT_CRITICAL();
+		memset(sensdata[sensor_light], '\0',sizeof(sensdata[sensor_light]));
+		//taskEXIT_CRITICAL();
 		sreadings[strlen(sreadings)-1]='\0';
 		strcpy(unit, "none");
 		strcpy(sensorname, "LightSensor");
@@ -184,7 +190,8 @@ int makeJson(char *buff, enum sensor_index index)
 			strcat(buff, json_object[i]);
 		}	
 		// clear the readings in pirreadings so that new 10 readings can be taken
-		sensdata[sensor_light][0] = '\0';
+		//sensdata[sensor_light][0] = '\0';
+		taskEXIT_CRITICAL();
 		break;
 	
 //manoj	case sensor_tag:
@@ -256,8 +263,13 @@ void UpTask()
 
 
 //void AppTask(char upir[10],char utemp[10],char ulight[10])
-void AppTask(char* upir,char* utemp,char* ulight)
+void AppTask(char* upirt,char* utempt,char* ulightt)
 {	
+		taskENTER_CRITICAL();
+		strcpy(upir,upirt);
+		strcpy(ulight,ulightt);
+		strcpy(utemp,utempt);
+		taskEXIT_CRITICAL();
 		if(alarmcount == 0)
 		{
 			UpdateTimestamp();
@@ -280,9 +292,10 @@ void AppTask(char* upir,char* utemp,char* ulight)
 			//PIR = PIRRead();			// get PIR data
 			sprintf(pirstr,"%d,",upir);	//Copy PIR data in to PIR data string
 			taskEXIT_CRITICAL();*/
-		UARTWrite(1,ulight);
-		UARTWrite(1," -> light value\n");
+			//UARTWrite(1,upir);
+		//UARTWrite(1," -> light value\n");
 			taskENTER_CRITICAL(); //Put in critical section such that it is not interrupted by the post task
+		//UARTWrite(1,upir);
 			strcat(utemp,",");
 			strcat(sensdata[sensor_temperature],utemp);
 			

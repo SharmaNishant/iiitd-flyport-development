@@ -1,0 +1,297 @@
+   1               		.file	"main.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+  15               	.Ltext0:
+  16               		.data
+  17               	.LC0:
+  18 0000 5465 6D70 		.string	"Temp_val:"
+  18      5F76 616C 
+  18      3A00 
+  19               	.LC1:
+  20 000a 2C4C 7578 		.string	",Lux_calc:"
+  20      5F63 616C 
+  20      633A 00
+  21               	.LC2:
+  22 0015 7C50 6972 		.string	"|Pir:"
+  22      3A00 
+  23               	.LC3:
+  24 001b 0A0D 0A00 		.string	"\n\r\n"
+  25               		.text
+  26               	.global	main
+  28               	main:
+  29               	.LFB6:
+  30               	.LM1:
+  31 0000 BF92      		push r11
+  32 0002 CF92      		push r12
+  33 0004 DF92      		push r13
+  34 0006 EF92      		push r14
+  35 0008 FF92      		push r15
+  36 000a 0F93      		push r16
+  37 000c 1F93      		push r17
+  38 000e CF93      		push r28
+  39 0010 DF93      		push r29
+  40               	/* prologue: function */
+  41               	/* frame size = 0 */
+  42               	.LM2:
+  43 0012 83E3      		ldi r24,lo8(51)
+  44 0014 90E0      		ldi r25,hi8(51)
+  45 0016 00D0      		rcall uart_init
+  46               	.LM3:
+  47               	/* #APP */
+  48               	 ;  23 "main.c" 1
+  49 0018 7894      		sei
+  50               	 ;  0 "" 2
+  51               	.LM4:
+  52               	/* #NOAPP */
+  53 001a 81B3      		in r24,49-32
+  54 001c 81BB      		out 49-32,r24
+  55               	.LM5:
+  56 001e 82B3      		in r24,50-32
+  57 0020 82BB      		out 50-32,r24
+  58               	.LM6:
+  59 0022 00D0      		rcall i2c_init
+  60               	.LM7:
+  61 0024 20E0      		ldi r18,lo8(buf)
+  62 0026 C22E      		mov r12,r18
+  63 0028 20E0      		ldi r18,hi8(buf)
+  64 002a D22E      		mov r13,r18
+  65 002c 90E5      		ldi r25,lo8(80)
+  66 002e B92E      		mov r11,r25
+  67               	.LBB24:
+  68               	.LBB25:
+  69               	.LBB26:
+  70               	.LBB27:
+  71               	.LM8:
+  72 0030 C8EC      		ldi r28,lo8(200)
+  73 0032 D0E0      		ldi r29,hi8(200)
+  74               	.LBE27:
+  75               	.LBE26:
+  76               	.LBE25:
+  77               	.LBE24:
+  78               	.LM9:
+  79 0034 81E0      		ldi r24,lo8(1)
+  80 0036 E82E      		mov r14,r24
+  81 0038 F12C      		mov r15,__zero_reg__
+  82               	.L7:
+  83               	.LM10:
+  84 003a F601      		movw r30,r12
+  85 003c 8B2D      		mov r24,r11
+  86 003e 1192      		st Z+,__zero_reg__
+  87 0040 8A95      	        dec r24
+  88 0042 01F4      		brne .-6
+  89 0044 88E2      		ldi r24,lo8(9000)
+  90 0046 93E2      		ldi r25,hi8(9000)
+  91               	.LVL0:
+  92               	.L2:
+  93               	.LBB31:
+  94               	.LBB30:
+  95               	.LBB29:
+  96               	.LBB28:
+  97               	.LM11:
+  98 0048 FE01      		movw r30,r28
+  99               	.LVL1:
+ 100               	/* #APP */
+ 101               	 ;  105 "c:/winavr-20100110/lib/gcc/../../avr/include/util/delay_basic.h" 1
+ 102 004a 3197      		1: sbiw r30,1
+ 103 004c 01F4      		brne 1b
+ 104               	 ;  0 "" 2
+ 105               	/* #NOAPP */
+ 106               	.LBE28:
+ 107               	.LBE29:
+ 108               	.LM12:
+ 109 004e 0197      		sbiw r24,1
+ 110               	.LM13:
+ 111 0050 01F4      		brne .L2
+ 112               	.LBE30:
+ 113               	.LBE31:
+ 114               	.LM14:
+ 115 0052 00D0      		rcall light
+ 116               	.LVL2:
+ 117 0054 6093 0000 		sts lux,r22
+ 118 0058 7093 0000 		sts (lux)+1,r23
+ 119 005c 8093 0000 		sts (lux)+2,r24
+ 120 0060 9093 0000 		sts (lux)+3,r25
+ 121               	.LM15:
+ 122 0064 00D0      		rcall DS1820Read
+ 123 0066 6093 0000 		sts temp,r22
+ 124 006a 7093 0000 		sts (temp)+1,r23
+ 125 006e 8093 0000 		sts (temp)+2,r24
+ 126 0072 9093 0000 		sts (temp)+3,r25
+ 127               	.LM16:
+ 128 0076 48E0      		ldi r20,lo8(8)
+ 129 0078 26E0      		ldi r18,lo8(6)
+ 130 007a 00E0      		ldi r16,lo8(buf1)
+ 131 007c 10E0      		ldi r17,hi8(buf1)
+ 132 007e 00D0      		rcall dtostrf
+ 133               	.LM17:
+ 134 0080 6091 0000 		lds r22,lux
+ 135 0084 7091 0000 		lds r23,(lux)+1
+ 136 0088 8091 0000 		lds r24,(lux)+2
+ 137 008c 9091 0000 		lds r25,(lux)+3
+ 138 0090 48E0      		ldi r20,lo8(8)
+ 139 0092 26E0      		ldi r18,lo8(6)
+ 140 0094 00E0      		ldi r16,lo8(buf2)
+ 141 0096 10E0      		ldi r17,hi8(buf2)
+ 142 0098 00D0      		rcall dtostrf
+ 143               	.LM18:
+ 144 009a 839B      		sbis 48-32,3
+ 145 009c 00C0      		rjmp .L3
+ 146               	.LM19:
+ 147 009e F092 0000 		sts (pir)+1,r15
+ 148 00a2 E092 0000 		sts pir,r14
+ 149 00a6 00C0      		rjmp .L4
+ 150               	.L3:
+ 151               	.LM20:
+ 152 00a8 1092 0000 		sts (pir)+1,__zero_reg__
+ 153 00ac 1092 0000 		sts pir,__zero_reg__
+ 154               	.L4:
+ 155               	.LM21:
+ 156 00b0 8091 0000 		lds r24,pir
+ 157 00b4 9091 0000 		lds r25,(pir)+1
+ 158 00b8 60E0      		ldi r22,lo8(buf3)
+ 159 00ba 70E0      		ldi r23,hi8(buf3)
+ 160 00bc 4AE0      		ldi r20,lo8(10)
+ 161 00be 50E0      		ldi r21,hi8(10)
+ 162 00c0 00D0      		rcall itoa
+ 163 00c2 84EF      		ldi r24,lo8(500)
+ 164 00c4 91E0      		ldi r25,hi8(500)
+ 165               	.LVL3:
+ 166               	.L5:
+ 167               	.LBB32:
+ 168               	.LBB33:
+ 169               	.LBB34:
+ 170               	.LBB35:
+ 171               	.LM22:
+ 172 00c6 FE01      		movw r30,r28
+ 173               	.LVL4:
+ 174               	/* #APP */
+ 175               	 ;  105 "c:/winavr-20100110/lib/gcc/../../avr/include/util/delay_basic.h" 1
+ 176 00c8 3197      		1: sbiw r30,1
+ 177 00ca 01F4      		brne 1b
+ 178               	 ;  0 "" 2
+ 179               	/* #NOAPP */
+ 180               	.LBE35:
+ 181               	.LBE34:
+ 182               	.LM23:
+ 183 00cc 0197      		sbiw r24,1
+ 184               	.LM24:
+ 185 00ce 01F4      		brne .L5
+ 186               	.LBE33:
+ 187               	.LBE32:
+ 188               	.LM25:
+ 189 00d0 80E0      		ldi r24,lo8(buf)
+ 190 00d2 90E0      		ldi r25,hi8(buf)
+ 191               	.LVL5:
+ 192 00d4 60E0      		ldi r22,lo8(.LC0)
+ 193 00d6 70E0      		ldi r23,hi8(.LC0)
+ 194 00d8 00D0      		rcall strcat
+ 195               	.LVL6:
+ 196               	.LM26:
+ 197 00da 80E0      		ldi r24,lo8(buf)
+ 198 00dc 90E0      		ldi r25,hi8(buf)
+ 199 00de 60E0      		ldi r22,lo8(buf1)
+ 200 00e0 70E0      		ldi r23,hi8(buf1)
+ 201 00e2 00D0      		rcall strcat
+ 202               	.LM27:
+ 203 00e4 80E0      		ldi r24,lo8(buf)
+ 204 00e6 90E0      		ldi r25,hi8(buf)
+ 205 00e8 60E0      		ldi r22,lo8(.LC1)
+ 206 00ea 70E0      		ldi r23,hi8(.LC1)
+ 207 00ec 00D0      		rcall strcat
+ 208               	.LM28:
+ 209 00ee 80E0      		ldi r24,lo8(buf)
+ 210 00f0 90E0      		ldi r25,hi8(buf)
+ 211 00f2 60E0      		ldi r22,lo8(buf2)
+ 212 00f4 70E0      		ldi r23,hi8(buf2)
+ 213 00f6 00D0      		rcall strcat
+ 214               	.LM29:
+ 215 00f8 80E0      		ldi r24,lo8(buf)
+ 216 00fa 90E0      		ldi r25,hi8(buf)
+ 217 00fc 60E0      		ldi r22,lo8(.LC2)
+ 218 00fe 70E0      		ldi r23,hi8(.LC2)
+ 219 0100 00D0      		rcall strcat
+ 220               	.LM30:
+ 221 0102 80E0      		ldi r24,lo8(buf)
+ 222 0104 90E0      		ldi r25,hi8(buf)
+ 223 0106 60E0      		ldi r22,lo8(buf3)
+ 224 0108 70E0      		ldi r23,hi8(buf3)
+ 225 010a 00D0      		rcall strcat
+ 226               	.LM31:
+ 227 010c 80E0      		ldi r24,lo8(buf)
+ 228 010e 90E0      		ldi r25,hi8(buf)
+ 229 0110 60E0      		ldi r22,lo8(.LC3)
+ 230 0112 70E0      		ldi r23,hi8(.LC3)
+ 231 0114 00D0      		rcall strcat
+ 232 0116 84EF      		ldi r24,lo8(500)
+ 233 0118 91E0      		ldi r25,hi8(500)
+ 234               	.LVL7:
+ 235               	.L6:
+ 236               	.LBB36:
+ 237               	.LBB37:
+ 238               	.LBB38:
+ 239               	.LBB39:
+ 240               	.LM32:
+ 241 011a FE01      		movw r30,r28
+ 242               	.LVL8:
+ 243               	/* #APP */
+ 244               	 ;  105 "c:/winavr-20100110/lib/gcc/../../avr/include/util/delay_basic.h" 1
+ 245 011c 3197      		1: sbiw r30,1
+ 246 011e 01F4      		brne 1b
+ 247               	 ;  0 "" 2
+ 248               	/* #NOAPP */
+ 249               	.LBE39:
+ 250               	.LBE38:
+ 251               	.LM33:
+ 252 0120 0197      		sbiw r24,1
+ 253               	.LM34:
+ 254 0122 01F4      		brne .L6
+ 255               	.LBE37:
+ 256               	.LBE36:
+ 257               	.LM35:
+ 258 0124 80E0      		ldi r24,lo8(buf)
+ 259 0126 90E0      		ldi r25,hi8(buf)
+ 260               	.LVL9:
+ 261 0128 00D0      		rcall uart_puts
+ 262               	.LVL10:
+ 263 012a 00C0      		rjmp .L7
+ 264               	.LFE6:
+ 266               		.comm temp,4,1
+ 267               		.comm lux,4,1
+ 268               		.comm pir,2,1
+ 269               		.comm buf1,20,1
+ 270               		.comm buf2,20,1
+ 271               		.comm buf3,20,1
+ 272               		.comm buf,80,1
+ 297               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 main.c
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:2      *ABS*:0000003f __SREG__
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:5      *ABS*:00000034 __CCP__
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Nishant\AppData\Local\Temp/ccKA3Umo.s:28     .text:00000000 main
+                            *COM*:00000050 buf
+                            *COM*:00000004 lux
+                            *COM*:00000004 temp
+                            *COM*:00000014 buf1
+                            *COM*:00000014 buf2
+                            *COM*:00000002 pir
+                            *COM*:00000014 buf3
+
+UNDEFINED SYMBOLS
+uart_init
+i2c_init
+light
+DS1820Read
+dtostrf
+itoa
+strcat
+uart_puts
+__do_copy_data
+__do_clear_bss

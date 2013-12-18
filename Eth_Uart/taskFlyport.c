@@ -15,7 +15,7 @@ int msglen;
 int i,k;
 char inmsg[500];
 char *fetch_temp,*fetch_lux,*fetch_pir;
-char luxstr[10],temps[10],pirs[10];
+char luxstr[10],temps[10],pirs[5];
 
 void UART2_init()
 	{
@@ -28,12 +28,14 @@ void UART2_init()
 
 void FlyportTask()
 {
+	int appFlag=0;
 	int temp_flag=0;
 	int lux_flag=0;
 	int pir_flag=0;
 	vTaskDelay(100);
 	ProfileInit();
 	ETHCustomLoad();
+		ClockInit();//Intialize RTCC
 	ETHRestart(ETH_CUSTOM);
 	//	Flyport waiting for the cable connection
 	
@@ -44,7 +46,10 @@ void FlyportTask()
 		UARTWrite(1,"UART INIT 2 Done\r\n");
 		vTaskDelay(100);
 		if(profile.AppEnable)
-			UpTask();
+			{
+				UpTask();
+				appFlag=1;
+			}
 	while(1)
 	{
 		//UARTWrite(1,"main loop");
@@ -98,16 +103,16 @@ void FlyportTask()
 			}		
 			//pirstr[k+1]='\0';
 			//UARTWrite(1,pirstr);
-			UARTWrite(1,"\ntmp:");		
+		/*	UARTWrite(1,"\ntmp:");		
 			UARTWrite(1,temps);		
 			UARTWrite(1,"\nlux:");
 			UARTWrite(1,luxstr);		
 			UARTWrite(1,"\nPir:");
 			UARTWrite(1,pirs);		
 			UARTWrite(1,"\r\n");
-			memset(inmsg,'\0',sizeof(inmsg));
+			*/memset(inmsg,'\0',sizeof(inmsg));
 			taskEXIT_CRITICAL();
-			if(profile.AppEnable)
+			if(appFlag==1)
 				AppTask(pirs,temps,luxstr);
 		}	
 	}

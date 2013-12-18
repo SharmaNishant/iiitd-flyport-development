@@ -10,7 +10,6 @@ enum sensor_index {
 	sensor_pir,
 	sensor_light,
 	//sensor_tag,
-	sensor_wifi,
-	NUM_SENSORS
+	sensor_wifi
 };
 
